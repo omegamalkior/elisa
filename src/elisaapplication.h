@@ -105,6 +105,11 @@ class ELISALIB_EXPORT ElisaApplication : public QObject
                WRITE setActiveColorSchemeName
                NOTIFY activeColorSchemeNameChanged)
 
+    Q_PROPERTY(bool darkMode
+               READ darkMode
+               WRITE setDarkMode
+               NOTIFY darkModeChanged)
+
     Q_PROPERTY(int initialViewIndex
                READ initialViewIndex
                NOTIFY initialViewIndexChanged)
@@ -156,6 +161,13 @@ public:
     QString activeColorSchemeName() const;
     void setActiveColorSchemeName(const QString &name);
 
+    /**
+     * True when the colors in use are dark. Setting it switches to a dark
+     * (Breeze Dark) or light (Breeze Light) color scheme.
+     */
+    [[nodiscard]] bool darkMode() const;
+    void setDarkMode(bool dark);
+
 Q_SIGNALS:
 
     void musicManagerChanged();
@@ -197,6 +209,8 @@ Q_SIGNALS:
     void initialFilesViewPathChanged();
 
     void activeColorSchemeNameChanged();
+
+    void darkModeChanged();
 
     void raisePlayer();
 
@@ -247,7 +261,13 @@ private Q_SLOTS:
 
     void configChanged();
 
+protected:
+
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
 private:
+
+    [[nodiscard]] QString colorSchemeNameFor(bool dark) const;
 
     void initializeModels();
 

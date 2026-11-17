@@ -52,6 +52,12 @@
 #include <QFileSystemWatcher>
 #include <QMimeDatabase>
 #include <QMimeType>
+#include <QPalette>
+#include <QDebug>
+#include <QEvent>
+#include <QColor>
+#include <KConfig>
+#include <KConfigGroup>
 
 using namespace Qt::Literals::StringLiterals;
 
@@ -101,6 +107,9 @@ ElisaApplication::ElisaApplication(QObject *parent) : QObject(parent), d(std::ma
     Elisa::ElisaConfiguration::self()->save();
     d->mSchemes = KColorSchemeManager::instance();
 
+    // notice palette changes (color scheme switched from the menu, settings or the system)
+    QCoreApplication::instance()->installEventFilter(this);
+
     d->mConfigFileWatcher.addPath(Elisa::ElisaConfiguration::self()->config()->name());
 
     connect(Elisa::ElisaConfiguration::self(), &Elisa::ElisaConfiguration::configChanged,
@@ -132,6 +141,65 @@ void ElisaApplication::setActiveColorSchemeName(const QString &name)
 {
     d->mSchemes->activateScheme(d->mSchemes->indexForScheme(name));
     Q_EMIT activeColorSchemeNameChanged();
+    Q_EMIT darkModeChanged();
+}
+
+bool ElisaApplication::darkMode() const
+{
+    return QGuiApplication::palette().color(QPalette::Window).lightness() < 128;
+}
+
+void ElisaApplication::setDarkMode(bool dark)
+{
+    if (darkMode() == dark) {
+        return;
+    }
+
+    const auto schemeName = colorSchemeNameFor(dark);
+    if (schemeName.isEmpty()) {
+        qWarning() << "ElisaApplication::setDarkMode: no" << (dark ? "dark" : "light") << "color scheme is installed";
+        Q_EMIT darkModeChanged();
+        return;
+    }
+
+    setActiveColorSchemeName(schemeName);
+}
+
+QString ElisaApplication::colorSchemeNameFor(bool dark) const
+{
+    const QStringList preferred = dark ? QStringList{QStringLiteral("Breeze Dark")}
+                                       : QStringList{QStringLiteral("Breeze Light"), QStringLiteral("Breeze")};
+    for (const auto &name : preferred) {
+        if (d->mSchemes->indexForScheme(name).isValid()) {
+            return name;
+        }
+    }
+
+    // otherwise pick the first installed scheme with a dark (or light) window background
+    const auto *model = d->mSchemes->model();
+    for (int row = 0; row < model->rowCount(); ++row) {
+        const auto index = model->index(row, 0);
+        const auto path = index.data(Qt::UserRole).toString(); // KColorSchemeModel::PathRole
+        if (path.isEmpty()) {
+            continue;
+        }
+        KConfig schemeConfig(path, KConfig::SimpleConfig);
+        const auto background = KConfigGroup(&schemeConfig, QStringLiteral("Colors:Window")).readEntry("BackgroundNormal", QColor());
+        if (background.isValid() && (background.lightness() < 128) == dark) {
+            return index.data(Qt::DisplayRole).toString();
+        }
+    }
+
+    return {};
+}
+
+bool ElisaApplication::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == QCoreApplication::instance() && event->type() == QEvent::ApplicationPaletteChange) {
+        Q_EMIT darkModeChanged();
+    }
+
+    return QObject::eventFilter(watched, event);
 }
 
 void ElisaApplication::setupActions()

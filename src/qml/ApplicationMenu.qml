@@ -58,6 +58,20 @@ Menu {
 
     MenuSeparator {}
 
+    Action {
+        id: darkModeAction
+        text: KI18n.i18nc("@action:inmenu", "Dark Mode")
+        icon.name: "weather-clear-night"
+        checkable: true
+        checked: ElisaApplication.darkMode
+        onTriggered: {
+            ElisaApplication.darkMode = checked
+            // clicking breaks the binding; restore it so the tick follows the real colors
+            darkModeAction.checked = Qt.binding(() => ElisaApplication.darkMode)
+            applicationMenu.close()
+        }
+    }
+
     Menu {
         title: KI18n.i18nc("@action:inmenu this has child menu items", "Color Scheme")
         Repeater {
