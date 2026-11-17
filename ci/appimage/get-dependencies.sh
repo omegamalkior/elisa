@@ -5,7 +5,7 @@ set -eu
 echo "Installing build tools and Elisa's dependencies..."
 pacman -Syu --noconfirm --needed \
 	base-devel cmake ninja git extra-cmake-modules kdoctools qt6-tools \
-	elisa breeze breeze-icons kirigami-addons qqc2-desktop-style \
+	elisa breeze breeze-icons kirigami-addons qqc2-desktop-style qt6-multimedia-ffmpeg \
 	kimageformats qt6-imageformats fuse3 pipewire-audio qt6ct
 
 echo "Building the patched Elisa from this branch..."
