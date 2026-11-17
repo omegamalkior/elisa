@@ -13,6 +13,7 @@ import QtQuick.Window
 import QtQuick.Layouts
 import QtQuick.Effects as FX
 import org.kde.kirigami as Kirigami
+import org.kde.kirigamiaddons.components as KAComponents
 import org.kde.elisa
 
 AbstractBrowserDelegate {
@@ -117,7 +118,7 @@ AbstractBrowserDelegate {
                 width: parent.width
                 height: parent.height
 
-                Kirigami.Avatar {
+                KAComponents.Avatar {
                     anchors.centerIn: parent
                     width: Math.round(parent.width * 0.86)
                     height: width
