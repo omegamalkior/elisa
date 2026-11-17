@@ -54,7 +54,7 @@ jobs:
         run: |
           export APPIMAGE_PATH=$(ls $PWD/dist/*.AppImage | head -n 1)
           dbus-run-session -- ./ci/run-elisa-full-test.sh
-          if grep -E "failed to load component|is not a type|module .* is not installed|ReferenceError|TypeError|SyntaxError|cannot open shared object|Segmentation" results/run*.log; then
+          if grep -E "failed to load component|is not a type|module .* is not installed|ReferenceError|TypeError|SyntaxError|cannot open shared object|Segmentation|unable to open|Could not open|Unable to load|No QtMultimedia backends" results/run*.log; then
             echo "::error::Elisa did not start cleanly from the AppImage"; exit 1
           fi
 
@@ -83,8 +83,3 @@ jobs:
         with:
           tag_name: album-artist-build-10
           files: dist/*
-          append_body: true
-          body: |
-
-            **AppImage (any Linux, no install needed):** download `Elisa-album-artist-x86_64.AppImage`, make it executable
-            (right-click → Properties → Permissions → "Is executable", or `chmod +x` in a terminal) and double-click it.

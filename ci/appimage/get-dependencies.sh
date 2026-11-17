@@ -12,7 +12,8 @@ echo "Building the patched Elisa from this branch..."
 cmake -S . -B build -G Ninja \
 	-DCMAKE_INSTALL_PREFIX=/usr \
 	-DCMAKE_BUILD_TYPE=Release \
-	-DBUILD_TESTING=OFF
+	-DBUILD_TESTING=OFF \
+	-DCMAKE_DISABLE_FIND_PACKAGE_LIBVLC=ON   # use Qt Multimedia (bundled cleanly) instead of VLC
 cmake --build build
 cmake --install build   # replaces Arch's Elisa with ours
 
