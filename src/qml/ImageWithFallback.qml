@@ -7,6 +7,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import org.kde.elisa
 
 Item {
     id: imageWithFallback
@@ -35,6 +36,24 @@ Item {
         } else {
             usingFallback = false;
             return source;
+        }
+    }
+
+    // theme icons (image://icon/...) are drawn in the current colors, so draw
+    // them again when the colors change (e.g. switching dark mode on or off)
+    function reloadThemeIcon() {
+        if (image.source.toString().startsWith("image://icon/")) {
+            const currentSource = image.source
+            image.source = ""
+            image.source = currentSource
+        }
+    }
+
+    Connections {
+        target: ElisaApplication
+
+        function onDarkModeChanged() {
+            imageWithFallback.reloadThemeIcon()
         }
     }
 
