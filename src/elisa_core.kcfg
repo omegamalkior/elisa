@@ -43,6 +43,12 @@
       false
     </default>
   </entry>
+  <entry key="UseAlbumArtistInArtistsView" type="Bool" >
+    <label>Only list album artists in the Artists view</label>
+    <default>
+      false
+    </default>
+  </entry>
   </group>
   <group name="Playlist">
    <entry key="AlwaysUseAbsolutePlaylistPaths" type="Bool" >

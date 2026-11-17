@@ -145,6 +145,20 @@ SplitView {
         embeddedCategory: Kirigami.Settings.isMobile ? ElisaUtils.Unknown : ElisaApplication.embeddedView
     }
 
+    Connections {
+        target: ElisaApplication
+
+        function onUseAlbumArtistInArtistsViewChanged() {
+            viewsData.refreshEmbeddedArtists()
+
+            // reload the page on screen so it picks up the new artist grouping
+            // (embedded sidebar artists are being reloaded, so skip those pages)
+            if (viewManager.viewIndex >= 0 && viewManager.viewIndex < viewsData.count()) {
+                viewManager.openView(viewManager.viewIndex)
+            }
+        }
+    }
+
     // sidebar used on desktop
     Loader {
         id: desktopSidebar

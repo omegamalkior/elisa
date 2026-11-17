@@ -176,6 +176,35 @@ ColumnLayout {
 
         Item {
             Kirigami.FormData.isSection: true
+        }
+
+        QQC2.CheckBox {
+            id: albumArtistCheckBox
+
+            Kirigami.FormData.label: KI18n.i18nc("@title:group", "Artists view:")
+
+            Layout.fillWidth: true
+
+            text: KI18n.i18nc("@option:check", "Only show album artists")
+
+            checked: ElisaConfigurationDialog.useAlbumArtistInArtistsView
+            onToggled: ElisaConfigurationDialog.useAlbumArtistInArtistsView = checked
+            Accessible.onToggleAction: onToggled
+            Accessible.onPressAction: onToggled
+        }
+
+        QQC2.Label {
+            Layout.fillWidth: true
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 20
+
+            text: KI18n.i18nc("@info:usagetip", "Group songs under their Album Artist tag (TPE2 in MP3 files), so guest and featured artists no longer clutter the list. Songs without an Album Artist tag still use their regular artist.")
+            wrapMode: Text.WordWrap
+            font: Kirigami.Theme.smallFont
+            opacity: 0.7
+        }
+
+        Item {
+            Kirigami.FormData.isSection: true
             visible: Kirigami.Settings.isMobile
         }
 

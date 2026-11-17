@@ -265,7 +265,7 @@ public:
 
     ~ViewsListData() override;
 
-    [[nodiscard]] int count() const;
+    Q_INVOKABLE int count() const;
 
     [[nodiscard]] bool isEmpty() const;
 
@@ -334,6 +334,12 @@ public Q_SLOTS:
     void databaseEntryRemoved(qulonglong removedDatabaseId, ElisaUtils::PlayListEntryType entryType);
 
     void cleanedDatabase();
+
+    /**
+     * Reload the artists embedded in the sidebar (if artists are embedded),
+     * e.g. after switching between "all artists" and "album artists only".
+     */
+    void refreshEmbeddedArtists();
 
 private:
 

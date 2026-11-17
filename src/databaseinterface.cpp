@@ -33,6 +33,26 @@
 
 using namespace Qt::Literals::StringLiterals;
 
+namespace {
+
+// Builds the "album artists only" flavour of an artist query by swapping the
+// conditions that match a track by either its artist or its album artist with
+// conditions that match by album artist (falling back to the track artist when
+// a track has no album artist tag).
+QString albumArtistQueryVariant(QString queryText, const QList<std::pair<QString, QString>> &replacements)
+{
+    for (const auto &[from, to] : replacements) {
+        if (!queryText.contains(from)) {
+            qCWarning(orgKdeElisaDatabase) << "albumArtistQueryVariant: condition not found in query" << from;
+        }
+        queryText.replace(from, to);
+    }
+
+    return queryText;
+}
+
+}
+
 class DatabaseInterfacePrivate
 {
 public:
@@ -199,6 +219,14 @@ public:
         , mSelectAllArtistsWithGenreFilterQuery(mTracksDatabase)
         , mSelectAllAlbumsShortWithGenreArtistFilterQuery(mTracksDatabase)
         , mSelectAllAlbumsShortWithArtistFilterQuery(mTracksDatabase)
+        , mSelectAllAlbumArtistsQuery(mTracksDatabase)
+        , mSelectAllAlbumArtistsWithGenreFilterQuery(mTracksDatabase)
+        , mSelectAllAlbumsShortWithAlbumArtistFilterQuery(mTracksDatabase)
+        , mSelectAllAlbumsShortWithGenreAlbumArtistFilterQuery(mTracksDatabase)
+        , mSelectTracksFromAlbumArtist(mTracksDatabase)
+        , mSelectTracksFromAlbumArtistAndGenre(mTracksDatabase)
+        , mSelectUpToFourLatestCoversFromAlbumArtistNameQuery(mTracksDatabase)
+        , mSelectArtistIsAlbumArtistQuery(mTracksDatabase)
         , mSelectAllRecentlyPlayedTracksQuery(mTracksDatabase)
         , mSelectAllFrequentlyPlayedTracksQuery(mTracksDatabase)
         , mClearTracksDataTable(mTracksDatabase)
@@ -382,6 +410,23 @@ public:
     QSqlQuery mSelectAllAlbumsShortWithGenreArtistFilterQuery;
 
     QSqlQuery mSelectAllAlbumsShortWithArtistFilterQuery;
+
+    // variants used when the Artists view only lists album artists
+    QSqlQuery mSelectAllAlbumArtistsQuery;
+
+    QSqlQuery mSelectAllAlbumArtistsWithGenreFilterQuery;
+
+    QSqlQuery mSelectAllAlbumsShortWithAlbumArtistFilterQuery;
+
+    QSqlQuery mSelectAllAlbumsShortWithGenreAlbumArtistFilterQuery;
+
+    QSqlQuery mSelectTracksFromAlbumArtist;
+
+    QSqlQuery mSelectTracksFromAlbumArtistAndGenre;
+
+    QSqlQuery mSelectUpToFourLatestCoversFromAlbumArtistNameQuery;
+
+    QSqlQuery mSelectArtistIsAlbumArtistQuery;
 
     QSqlQuery mSelectAllRecentlyPlayedTracksQuery;
 
@@ -687,10 +732,12 @@ DataTypes::ListAlbumDataType DatabaseInterface::allAlbumsDataByGenreAndArtist(co
         return result;
     }
 
-    d->mSelectAllAlbumsShortWithGenreArtistFilterQuery.bindValue(QStringLiteral(":artistFilter"), artist);
-    d->mSelectAllAlbumsShortWithGenreArtistFilterQuery.bindValue(QStringLiteral(":genreFilter"), genre);
+    auto &albumsQuery = useAlbumArtistInArtistsView() ? d->mSelectAllAlbumsShortWithGenreAlbumArtistFilterQuery : d->mSelectAllAlbumsShortWithGenreArtistFilterQuery;
 
-    result = internalAllAlbumsPartialData(d->mSelectAllAlbumsShortWithGenreArtistFilterQuery);
+    albumsQuery.bindValue(QStringLiteral(":artistFilter"), artist);
+    albumsQuery.bindValue(QStringLiteral(":genreFilter"), genre);
+
+    result = internalAllAlbumsPartialData(albumsQuery);
 
     transactionResult = finishTransaction();
     if (!transactionResult) {
@@ -713,9 +760,19 @@ DataTypes::ListAlbumDataType DatabaseInterface::allAlbumsDataByArtist(const QStr
         return result;
     }
 
-    d->mSelectAllAlbumsShortWithArtistFilterQuery.bindValue(QStringLiteral(":artistFilter"), artist);
+    const auto useAlbumArtist = useAlbumArtistInArtistsView();
+    auto &albumsQuery = useAlbumArtist ? d->mSelectAllAlbumsShortWithAlbumArtistFilterQuery : d->mSelectAllAlbumsShortWithArtistFilterQuery;
 
-    result = internalAllAlbumsPartialData(d->mSelectAllAlbumsShortWithArtistFilterQuery);
+    albumsQuery.bindValue(QStringLiteral(":artistFilter"), artist);
+
+    result = internalAllAlbumsPartialData(albumsQuery);
+
+    // an artist page can also be opened for a track artist (e.g. from the now
+    // playing view); if they have no album of their own, show where they appear
+    if (useAlbumArtist && result.isEmpty()) {
+        d->mSelectAllAlbumsShortWithArtistFilterQuery.bindValue(QStringLiteral(":artistFilter"), artist);
+        result = internalAllAlbumsPartialData(d->mSelectAllAlbumsShortWithArtistFilterQuery);
+    }
 
     transactionResult = finishTransaction();
     if (!transactionResult) {
@@ -784,7 +841,7 @@ DataTypes::ListArtistDataType DatabaseInterface::allArtistsData()
         return result;
     }
 
-    result = internalAllArtistsPartialData(d->mSelectAllArtistsQuery);
+    result = internalAllArtistsPartialData(useAlbumArtistInArtistsView() ? d->mSelectAllAlbumArtistsQuery : d->mSelectAllArtistsQuery);
 
     transactionResult = finishTransaction();
     if (!transactionResult) {
@@ -809,9 +866,11 @@ DataTypes::ListArtistDataType DatabaseInterface::allArtistsDataByGenre(const QSt
         return result;
     }
 
-    d->mSelectAllArtistsWithGenreFilterQuery.bindValue(QStringLiteral(":genreFilter"), genre);
+    auto &artistsQuery = useAlbumArtistInArtistsView() ? d->mSelectAllAlbumArtistsWithGenreFilterQuery : d->mSelectAllArtistsWithGenreFilterQuery;
 
-    result = internalAllArtistsPartialData(d->mSelectAllArtistsWithGenreFilterQuery);
+    artistsQuery.bindValue(QStringLiteral(":genreFilter"), genre);
+
+    result = internalAllArtistsPartialData(artistsQuery);
 
     transactionResult = finishTransaction();
     if (!transactionResult) {
@@ -1203,6 +1262,9 @@ void DatabaseInterface::insertTracksList(const DataTypes::ListTrackDataType &tra
 
     DataTypes::ListArtistDataType newArtists;
     for (auto newArtistId : std::as_const(d->mInsertedArtists)) {
+        if (useAlbumArtistInArtistsView() && !artistIsAlbumArtist(newArtistId)) {
+            continue;
+        }
         newArtists.push_back(internalOneArtistPartialData(newArtistId));
     }
 
@@ -4148,6 +4210,22 @@ ORDER BY album.`Title` COLLATE NOCASE
 
             Q_EMIT databaseError();
         }
+
+        {
+            const auto albumArtistText = albumArtistQueryVariant(selectAllAlbumsText, {
+                {u"tracksCount.`ArtistName` = :artistFilter"_s, u"tracksCount.`AlbumArtistName` IS NULL AND tracksCount.`ArtistName` = :artistFilter"_s},
+                {u"(tracks2.`ArtistName` = :artistFilter OR tracks2.`AlbumArtistName` = :artistFilter)"_s, u"(tracks2.`AlbumArtistName` = :artistFilter OR (tracks2.`AlbumArtistName` IS NULL AND tracks2.`ArtistName` = :artistFilter))"_s}
+            });
+
+            auto albumArtistResult = prepareQuery(d->mSelectAllAlbumsShortWithGenreAlbumArtistFilterQuery, albumArtistText);
+
+            if (!albumArtistResult) {
+                qCCritical(orgKdeElisaDatabase).noquote() << "DatabaseInterface::initDataQueries" << d->mSelectAllAlbumsShortWithGenreAlbumArtistFilterQuery.lastQuery();
+                qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::initDataQueries" << d->mSelectAllAlbumsShortWithGenreAlbumArtistFilterQuery.lastError();
+
+                Q_EMIT databaseError();
+            }
+        }
     }
 
     {
@@ -4276,6 +4354,22 @@ ORDER BY artists.`Name` COLLATE NOCASE
 
             Q_EMIT databaseError();
         }
+
+        {
+            const auto albumArtistText = albumArtistQueryVariant(selectAllAlbumsText, {
+                {u"tracksCount.`ArtistName` = :artistFilter"_s, u"tracksCount.`AlbumArtistName` IS NULL AND tracksCount.`ArtistName` = :artistFilter"_s},
+                {u"(tracks2.`ArtistName` = :artistFilter OR tracks2.`AlbumArtistName` = :artistFilter)"_s, u"(tracks2.`AlbumArtistName` = :artistFilter OR (tracks2.`AlbumArtistName` IS NULL AND tracks2.`ArtistName` = :artistFilter))"_s}
+            });
+
+            auto albumArtistResult = prepareQuery(d->mSelectAllAlbumsShortWithAlbumArtistFilterQuery, albumArtistText);
+
+            if (!albumArtistResult) {
+                qCCritical(orgKdeElisaDatabase).noquote() << "DatabaseInterface::initDataQueries" << d->mSelectAllAlbumsShortWithAlbumArtistFilterQuery.lastQuery();
+                qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::initDataQueries" << d->mSelectAllAlbumsShortWithAlbumArtistFilterQuery.lastError();
+
+                Q_EMIT databaseError();
+            }
+        }
     }
 
     {
@@ -4329,6 +4423,62 @@ ORDER BY artists.`Name` COLLATE NOCASE
 
             Q_EMIT databaseError();
         }
+
+        {
+            auto selectAllAlbumArtistsText =
+                uR"(
+SELECT artists.`ID`, 
+artists.`Name`, 
+GROUP_CONCAT(genres.`Name`, ', ') as AllGenres 
+FROM `Artists` artists  LEFT JOIN 
+`Tracks` tracks ON (tracks.`AlbumArtistName` = artists.`Name` OR (tracks.`AlbumArtistName` IS NULL AND tracks.`ArtistName` = artists.`Name`)) LEFT JOIN 
+`Genre` genres ON tracks.`Genre` = genres.`Name` 
+WHERE 
+EXISTS (
+  SELECT tracks2.`ID` 
+  FROM 
+  `Tracks` tracks2 
+  WHERE 
+  tracks2.`AlbumArtistName` = artists.`Name` OR 
+  (tracks2.`AlbumArtistName` IS NULL AND tracks2.`ArtistName` = artists.`Name`) 
+) 
+GROUP BY artists.`ID` 
+ORDER BY artists.`Name` COLLATE NOCASE
+)"_s;
+
+            auto albumArtistResult = prepareQuery(d->mSelectAllAlbumArtistsQuery, selectAllAlbumArtistsText);
+
+            if (!albumArtistResult) {
+                qCCritical(orgKdeElisaDatabase).noquote() << "DatabaseInterface::initDataQueries" << d->mSelectAllAlbumArtistsQuery.lastQuery();
+                qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::initDataQueries" << d->mSelectAllAlbumArtistsQuery.lastError();
+
+                Q_EMIT databaseError();
+            }
+        }
+
+        {
+            auto selectArtistIsAlbumArtistText =
+                uR"(
+SELECT 1 
+FROM 
+`Tracks` tracks, 
+`Artists` artists 
+WHERE 
+artists.`ID` = :artistId AND 
+(tracks.`AlbumArtistName` = artists.`Name` OR 
+(tracks.`AlbumArtistName` IS NULL AND tracks.`ArtistName` = artists.`Name`)) 
+LIMIT 1
+)"_s;
+
+            auto albumArtistResult = prepareQuery(d->mSelectArtistIsAlbumArtistQuery, selectArtistIsAlbumArtistText);
+
+            if (!albumArtistResult) {
+                qCCritical(orgKdeElisaDatabase).noquote() << "DatabaseInterface::initDataQueries" << d->mSelectArtistIsAlbumArtistQuery.lastQuery();
+                qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::initDataQueries" << d->mSelectArtistIsAlbumArtistQuery.lastError();
+
+                Q_EMIT databaseError();
+            }
+        }
     }
 
     {
@@ -4359,6 +4509,23 @@ artists.`ID` = :databaseId
             qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::initDataQueries" << d->mArtistMatchGenreQuery.lastError();
 
             Q_EMIT databaseError();
+        }
+
+        {
+            const auto albumArtistText = albumArtistQueryVariant(selectAllArtistsWithGenreFilterText, {
+                {u"(tracksCount.`ArtistName` IS NULL OR tracksCount.`ArtistName` = artists.`Name`)"_s, u"(tracksCount.`AlbumArtistName` = artists.`Name` OR (tracksCount.`AlbumArtistName` IS NULL AND tracksCount.`ArtistName` = artists.`Name`))"_s},
+                {u"(tracks.`ArtistName` = artists.`Name` OR tracks.`AlbumArtistName` = artists.`Name`)"_s, u"(tracks.`AlbumArtistName` = artists.`Name` OR (tracks.`AlbumArtistName` IS NULL AND tracks.`ArtistName` = artists.`Name`))"_s},
+                {u"(tracks2.`ArtistName` = artists.`Name` OR tracks2.`AlbumArtistName` = artists.`Name`)"_s, u"(tracks2.`AlbumArtistName` = artists.`Name` OR (tracks2.`AlbumArtistName` IS NULL AND tracks2.`ArtistName` = artists.`Name`))"_s}
+            });
+
+            auto albumArtistResult = prepareQuery(d->mSelectAllAlbumArtistsWithGenreFilterQuery, albumArtistText);
+
+            if (!albumArtistResult) {
+                qCCritical(orgKdeElisaDatabase).noquote() << "DatabaseInterface::initDataQueries" << d->mSelectAllAlbumArtistsWithGenreFilterQuery.lastQuery();
+                qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::initDataQueries" << d->mSelectAllAlbumArtistsWithGenreFilterQuery.lastError();
+
+                Q_EMIT databaseError();
+            }
         }
     }
 
@@ -6641,6 +6808,21 @@ LIMIT 4
 
             Q_EMIT databaseError();
         }
+
+        {
+            const auto albumArtistText = albumArtistQueryVariant(selectUpToFourLatestCoversFromArtistNameQueryText, {
+                {u"(track.`ArtistName` = :artistName OR \ntrack.`AlbumArtistName` = :artistName)"_s, u"(track.`AlbumArtistName` = :artistName OR \n(track.`AlbumArtistName` IS NULL AND track.`ArtistName` = :artistName))"_s}
+            });
+
+            auto albumArtistResult = prepareQuery(d->mSelectUpToFourLatestCoversFromAlbumArtistNameQuery, albumArtistText);
+
+            if (!albumArtistResult) {
+                qCCritical(orgKdeElisaDatabase).noquote() << "DatabaseInterface::initDataQueries" << d->mSelectUpToFourLatestCoversFromAlbumArtistNameQuery.lastQuery();
+                qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::initDataQueries" << d->mSelectUpToFourLatestCoversFromAlbumArtistNameQuery.lastError();
+
+                Q_EMIT databaseError();
+            }
+        }
     }
 
     {
@@ -6777,6 +6959,21 @@ tracks.`Title` ASC
             qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::initDataQueries" << d->mSelectTracksFromArtist.lastError();
 
             Q_EMIT databaseError();
+        }
+
+        {
+            const auto albumArtistText = albumArtistQueryVariant(selectTracksFromArtistQueryText, {
+                {u"(tracks.`ArtistName` = :artistName OR tracks.`AlbumArtistName` = :artistName)"_s, u"(tracks.`AlbumArtistName` = :artistName OR (tracks.`AlbumArtistName` IS NULL AND tracks.`ArtistName` = :artistName))"_s}
+            });
+
+            auto albumArtistResult = prepareQuery(d->mSelectTracksFromAlbumArtist, albumArtistText);
+
+            if (!albumArtistResult) {
+                qCCritical(orgKdeElisaDatabase).noquote() << "DatabaseInterface::initDataQueries" << d->mSelectTracksFromAlbumArtist.lastQuery();
+                qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::initDataQueries" << d->mSelectTracksFromAlbumArtist.lastError();
+
+                Q_EMIT databaseError();
+            }
         }
     }
 
@@ -7093,6 +7290,21 @@ WHERE
             qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::initDataQueries" << d->mSelectArtistQuery.lastError();
 
             Q_EMIT databaseError();
+        }
+
+        {
+            const auto albumArtistText = albumArtistQueryVariant(selectTracksFromArtistAndGenreQueryText, {
+                {u"(tracks.`ArtistName` = :artistName OR tracks.`AlbumArtistName` = :artistName)"_s, u"(tracks.`AlbumArtistName` = :artistName OR (tracks.`AlbumArtistName` IS NULL AND tracks.`ArtistName` = :artistName))"_s}
+            });
+
+            auto albumArtistResult = prepareQuery(d->mSelectTracksFromAlbumArtistAndGenre, albumArtistText);
+
+            if (!albumArtistResult) {
+                qCCritical(orgKdeElisaDatabase).noquote() << "DatabaseInterface::initDataQueries" << d->mSelectTracksFromAlbumArtistAndGenre.lastQuery();
+                qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::initDataQueries" << d->mSelectTracksFromAlbumArtistAndGenre.lastError();
+
+                Q_EMIT databaseError();
+            }
         }
     }
 
@@ -8992,29 +9204,31 @@ qulonglong DatabaseInterface::internalRadioIdFromHttpAddress(const QString &http
 
 DataTypes::ListTrackDataType DatabaseInterface::internalTracksFromAuthor(const QString &ArtistName)
 {
+    auto &tracksQuery = useAlbumArtistInArtistsView() ? d->mSelectTracksFromAlbumArtist : d->mSelectTracksFromArtist;
+
     auto allTracks = DataTypes::ListTrackDataType{};
 
-    d->mSelectTracksFromArtist.bindValue(QStringLiteral(":artistName"), ArtistName);
+    tracksQuery.bindValue(QStringLiteral(":artistName"), ArtistName);
 
-    auto result = execQuery(d->mSelectTracksFromArtist);
+    auto result = execQuery(tracksQuery);
 
-    if (!result || !d->mSelectTracksFromArtist.isSelect() || !d->mSelectTracksFromArtist.isActive()) {
+    if (!result || !tracksQuery.isSelect() || !tracksQuery.isActive()) {
         Q_EMIT databaseError();
 
-        qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::tracksFromAuthor" << d->mSelectTracksFromArtist.lastQuery();
-        qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::tracksFromAuthor" << d->mSelectTracksFromArtist.boundValues();
-        qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::tracksFromAuthor" << d->mSelectTracksFromArtist.lastError();
+        qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::tracksFromAuthor" << tracksQuery.lastQuery();
+        qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::tracksFromAuthor" << tracksQuery.boundValues();
+        qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::tracksFromAuthor" << tracksQuery.lastError();
 
         return allTracks;
     }
 
-    while (d->mSelectTracksFromArtist.next()) {
-        const auto &currentRecord = d->mSelectTracksFromArtist.record();
+    while (tracksQuery.next()) {
+        const auto &currentRecord = tracksQuery.record();
 
         allTracks.push_back(buildTrackDataFromDatabaseRecord(currentRecord));
     }
 
-    d->mSelectTracksFromArtist.finish();
+    tracksQuery.finish();
 
     return allTracks;
 }
@@ -9050,30 +9264,32 @@ DataTypes::ListTrackDataType DatabaseInterface::internalTracksFromGenre(const QS
 
 DataTypes::ListTrackDataType DatabaseInterface::internalTracksFromAuthorAndGenre(const QString &artistName, const QString &genre)
 {
+    auto &tracksQuery = useAlbumArtistInArtistsView() ? d->mSelectTracksFromAlbumArtistAndGenre : d->mSelectTracksFromArtistAndGenre;
+
     auto allTracks = DataTypes::ListTrackDataType{};
 
-    d->mSelectTracksFromArtistAndGenre.bindValue(QStringLiteral(":artistName"), artistName);
-    d->mSelectTracksFromArtistAndGenre.bindValue(QStringLiteral(":genre"), genre);
+    tracksQuery.bindValue(QStringLiteral(":artistName"), artistName);
+    tracksQuery.bindValue(QStringLiteral(":genre"), genre);
 
-    auto result = execQuery(d->mSelectTracksFromArtistAndGenre);
+    auto result = execQuery(tracksQuery);
 
-    if (!result || !d->mSelectTracksFromArtistAndGenre.isSelect() || !d->mSelectTracksFromArtistAndGenre.isActive()) {
+    if (!result || !tracksQuery.isSelect() || !tracksQuery.isActive()) {
         Q_EMIT databaseError();
 
-        qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::tracksFromAuthorAndGenre" << d->mSelectTracksFromArtistAndGenre.lastQuery();
-        qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::tracksFromAuthorAndGenre" << d->mSelectTracksFromArtistAndGenre.boundValues();
-        qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::tracksFromAuthorAndGenre" << d->mSelectTracksFromArtistAndGenre.lastError();
+        qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::tracksFromAuthorAndGenre" << tracksQuery.lastQuery();
+        qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::tracksFromAuthorAndGenre" << tracksQuery.boundValues();
+        qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::tracksFromAuthorAndGenre" << tracksQuery.lastError();
 
         return allTracks;
     }
 
-    while (d->mSelectTracksFromArtistAndGenre.next()) {
-        const auto &currentRecord = d->mSelectTracksFromArtistAndGenre.record();
+    while (tracksQuery.next()) {
+        const auto &currentRecord = tracksQuery.record();
 
         allTracks.push_back(buildTrackDataFromDatabaseRecord(currentRecord));
     }
 
-    d->mSelectTracksFromArtistAndGenre.finish();
+    tracksQuery.finish();
 
     return allTracks;
 }
@@ -9674,30 +9890,32 @@ bool DatabaseInterface::updateAlbumCover(qulonglong albumId, const QUrl &albumAr
 }
 
 QVariantList DatabaseInterface::internalGetLatestFourCoversForArtist(const QString& artistName) {
+    auto &coversQuery = useAlbumArtistInArtistsView() ? d->mSelectUpToFourLatestCoversFromAlbumArtistNameQuery : d->mSelectUpToFourLatestCoversFromArtistNameQuery;
+
     auto covers = QList<QVariant>{};
 
-    d->mSelectUpToFourLatestCoversFromArtistNameQuery.bindValue(QStringLiteral(":artistName"), artistName);
+    coversQuery.bindValue(QStringLiteral(":artistName"), artistName);
 
-    auto queryResult = execQuery(d->mSelectUpToFourLatestCoversFromArtistNameQuery);
+    auto queryResult = execQuery(coversQuery);
 
-    if (!queryResult || !d->mSelectUpToFourLatestCoversFromArtistNameQuery.isSelect() || !d->mSelectUpToFourLatestCoversFromArtistNameQuery.isActive()) {
+    if (!queryResult || !coversQuery.isSelect() || !coversQuery.isActive()) {
         Q_EMIT databaseError();
 
         qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::internalGetLatestFourCoversForArtist"
-                                        << d->mSelectUpToFourLatestCoversFromArtistNameQuery.lastQuery();
+                                        << coversQuery.lastQuery();
         qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::internalGetLatestFourCoversForArtist"
-                                        << d->mSelectUpToFourLatestCoversFromArtistNameQuery.boundValues();
+                                        << coversQuery.boundValues();
         qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::internalGetLatestFourCoversForArtist"
-                                        << d->mSelectUpToFourLatestCoversFromArtistNameQuery.lastError();
+                                        << coversQuery.lastError();
 
-        d->mSelectUpToFourLatestCoversFromArtistNameQuery.finish();
+        coversQuery.finish();
 
         return covers;
     }
 
-    while (d->mSelectUpToFourLatestCoversFromArtistNameQuery.next()) {
-        const auto& cover = d->mSelectUpToFourLatestCoversFromArtistNameQuery.record().value(0).toUrl();
-        const auto& isTrackCover = d->mSelectUpToFourLatestCoversFromArtistNameQuery.record().value(1).toBool();
+    while (coversQuery.next()) {
+        const auto& cover = coversQuery.record().value(0).toUrl();
+        const auto& isTrackCover = coversQuery.record().value(1).toBool();
         if (isTrackCover) {
             covers.push_back(QVariant {QLatin1String {"image://cover/"} + cover.toLocalFile()}.toUrl());
         } else {
@@ -9705,7 +9923,7 @@ QVariantList DatabaseInterface::internalGetLatestFourCoversForArtist(const QStri
         }
     }
 
-    d->mSelectUpToFourLatestCoversFromArtistNameQuery.finish();
+    coversQuery.finish();
 
     return covers;
 }
@@ -9793,6 +10011,22 @@ bool DatabaseInterface::execHasRowQuery(QSqlQuery &query)
     }
     query.finish();
     return result;
+}
+
+bool DatabaseInterface::artistIsAlbumArtist(qulonglong artistId)
+{
+    d->mSelectArtistIsAlbumArtistQuery.bindValue(u":artistId"_s, artistId);
+    return execHasRowQuery(d->mSelectArtistIsAlbumArtistQuery);
+}
+
+bool DatabaseInterface::useAlbumArtistInArtistsView() const
+{
+    return mUseAlbumArtistInArtistsView.load();
+}
+
+void DatabaseInterface::setUseAlbumArtistInArtistsView(bool value)
+{
+    mUseAlbumArtistInArtistsView.store(value);
 }
 
 bool DatabaseInterface::artistHasTracks(qulonglong artistId)

@@ -92,6 +92,10 @@ class ELISALIB_EXPORT ElisaApplication : public QObject
                READ useFavoriteStyleRatings
                NOTIFY useFavoriteStyleRatingsChanged)
 
+    Q_PROPERTY(bool useAlbumArtistInArtistsView
+               READ useAlbumArtistInArtistsView
+               NOTIFY useAlbumArtistInArtistsViewChanged)
+
     Q_PROPERTY(QAbstractItemModel* colorSchemesModel
                READ colorSchemesModel
                CONSTANT)
@@ -141,6 +145,8 @@ public:
 
     [[nodiscard]] bool useFavoriteStyleRatings() const;
 
+    [[nodiscard]] bool useAlbumArtistInArtistsView() const;
+
     [[nodiscard]] ElisaUtils::PlayListEntryType embeddedView() const;
 
     int initialViewIndex() const;
@@ -179,6 +185,8 @@ Q_SIGNALS:
     void showSystemTrayIconChanged();
 
     void useFavoriteStyleRatingsChanged();
+
+    void useAlbumArtistInArtistsViewChanged();
 
     void commitDataRequest();
 

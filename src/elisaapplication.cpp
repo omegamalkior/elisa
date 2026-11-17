@@ -73,6 +73,8 @@ public:
 
     std::unique_ptr<MusicListenersManager> mMusicManager;
 
+    bool mUseAlbumArtistInArtistsView = false;
+
     std::unique_ptr<MediaPlayList> mMediaPlayList;
 
     std::unique_ptr<MediaPlayListProxyModel> mMediaPlayListProxyModel;
@@ -330,6 +332,16 @@ void ElisaApplication::configChanged()
     Q_EMIT showSystemTrayIconChanged();
     Q_EMIT useFavoriteStyleRatingsChanged();
     Q_EMIT embeddedViewChanged();
+
+    // the database must know about the new value before the views reload their data
+    const auto useAlbumArtist = currentConfiguration->useAlbumArtistInArtistsView();
+    if (d->mMusicManager) {
+        d->mMusicManager->viewDatabase()->setUseAlbumArtistInArtistsView(useAlbumArtist);
+    }
+    if (d->mUseAlbumArtistInArtistsView != useAlbumArtist) {
+        d->mUseAlbumArtistInArtistsView = useAlbumArtist;
+        Q_EMIT useAlbumArtistInArtistsViewChanged();
+    }
     Q_EMIT initialViewIndexChanged();
     Q_EMIT initialFilesViewPathChanged();
 }
@@ -379,6 +391,8 @@ void ElisaApplication::initialize()
 void ElisaApplication::initializeModels()
 {
     d->mMusicManager = std::make_unique<MusicListenersManager>();
+    d->mUseAlbumArtistInArtistsView = Elisa::ElisaConfiguration::self()->useAlbumArtistInArtistsView();
+    d->mMusicManager->viewDatabase()->setUseAlbumArtistInArtistsView(d->mUseAlbumArtistInArtistsView);
     Q_EMIT musicManagerChanged();
 
     d->mMediaPlayList = std::make_unique<MediaPlayList>();
@@ -557,6 +571,11 @@ bool ElisaApplication::useFavoriteStyleRatings() const
     auto currentConfiguration = Elisa::ElisaConfiguration::self();
 
     return currentConfiguration->useFavoriteStyleRatings();
+}
+
+bool ElisaApplication::useAlbumArtistInArtistsView() const
+{
+    return d->mUseAlbumArtistInArtistsView;
 }
 
 ElisaUtils::PlayListEntryType ElisaApplication::embeddedView() const

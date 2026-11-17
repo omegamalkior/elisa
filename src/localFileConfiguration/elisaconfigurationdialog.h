@@ -83,6 +83,11 @@ class ELISALIB_EXPORT ElisaConfigurationDialog : public QObject
                WRITE setUseFavoriteStyleRatings
                NOTIFY useFavoriteStyleRatingsChanged)
 
+    Q_PROPERTY(bool useAlbumArtistInArtistsView
+               READ useAlbumArtistInArtistsView
+               WRITE setUseAlbumArtistInArtistsView
+               NOTIFY useAlbumArtistInArtistsViewChanged)
+
 public:
 
     static ElisaConfigurationDialog *create(QQmlEngine *engine, QJSEngine *scriptEngine)
@@ -154,6 +159,11 @@ public:
         return mUseFavoriteStyleRatings;
     }
 
+    [[nodiscard]] bool useAlbumArtistInArtistsView() const
+    {
+        return mUseAlbumArtistInArtistsView;
+    }
+
     Q_INVOKABLE void removeMusicLocation(const QString &location);
 
 
@@ -183,6 +193,8 @@ Q_SIGNALS:
 
     void useFavoriteStyleRatingsChanged();
 
+    void useAlbumArtistInArtistsViewChanged();
+
 public Q_SLOTS:
 
     void setRootPath(const QStringList &rootPath);
@@ -211,6 +223,8 @@ public Q_SLOTS:
 
     void setUseFavoriteStyleRatings(bool useFavoriteStyleRatings);
 
+    void setUseAlbumArtistInArtistsView(bool useAlbumArtistInArtistsView);
+
 private Q_SLOTS:
 
     void configChanged();
@@ -238,6 +252,8 @@ private:
     bool mScanAtStartup = true;
 
     bool mUseFavoriteStyleRatings = false;
+
+    bool mUseAlbumArtistInArtistsView = false;
 
     ElisaUtils::PlayListEntryType mEmbeddedView = ElisaUtils::Unknown;
 

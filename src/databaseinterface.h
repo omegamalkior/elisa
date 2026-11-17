@@ -20,6 +20,7 @@
 #include <QUrl>
 #include <QDateTime>
 
+#include <atomic>
 #include <memory>
 #include <optional>
 
@@ -105,6 +106,16 @@ public:
     qulonglong radioIdFromFileName(const QUrl &fileName);
 
     void applicationAboutToQuit();
+
+    /**
+     * When true, the Artists view (and everything opened from it) only lists
+     * album artists: a track counts for the artist in its album artist tag,
+     * or for its track artist when it has no album artist tag.
+     * Thread safe: can be called from any thread.
+     */
+    [[nodiscard]] bool useAlbumArtistInArtistsView() const;
+
+    void setUseAlbumArtistInArtistsView(bool value);
 
 Q_SIGNALS:
 
@@ -362,6 +373,7 @@ private:
     bool execHasRowQuery(QSqlQuery &query);
 
     bool artistHasTracks(qulonglong artistId);
+    bool artistIsAlbumArtist(qulonglong artistId);
     bool genreHasTracks(qulonglong genreId);
     bool composerHasTracks(qulonglong composerId);
     bool lyricistHasTracks(qulonglong lyricistId);
@@ -373,6 +385,8 @@ private:
     void pruneLyricists();
 
     std::unique_ptr<DatabaseInterfacePrivate> d;
+
+    std::atomic_bool mUseAlbumArtistInArtistsView{false};
 
 };
 

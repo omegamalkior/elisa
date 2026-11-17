@@ -377,6 +377,13 @@ void ViewsListData::cleanedDatabase()
     clearEmbeddedItems();
 }
 
+void ViewsListData::refreshEmbeddedArtists()
+{
+    if (d->mEmbeddedCategory == ElisaUtils::Artist) {
+        refreshEmbeddedCategory();
+    }
+}
+
 void ViewsListData::refreshEmbeddedCategory()
 {
     clearEmbeddedItems();
