@@ -133,6 +133,7 @@ AbstractBrowserDelegate {
             layer.enabled: GraphicsInfo.api !== GraphicsInfo.Software
                            && !gridEntry.showArtistAvatar
                            && gridEntry.imageUrl.toString() !== ""
+                           && !(gridEntry.multipleImageUrls && gridEntry.multipleImageUrls.length == 4)
             layer.effect: FX.MultiEffect {
                 maskEnabled: true
                 maskSource: coverMask
@@ -146,14 +147,25 @@ AbstractBrowserDelegate {
                                    ? quartersCover : singleCover)
         }
 
-        Rectangle {
+        // the cover area is taller than it is wide and the picture is centered in it,
+        // so the rounded shape must match the picture itself, not the whole area
+        Item {
             id: coverMask
             width: coverImageLoader.width
             height: coverImageLoader.height
-            radius: gridEntry.coverRadius
             visible: false
             layer.enabled: true
             layer.smooth: true
+
+            Rectangle {
+                readonly property real side: Math.min(parent.width, parent.height)
+                readonly property var cover: coverImageLoader.item
+
+                anchors.centerIn: parent
+                width: cover && cover.paintedWidth > 0 ? cover.paintedWidth : side
+                height: cover && cover.paintedHeight > 0 ? cover.paintedHeight : side
+                radius: gridEntry.coverRadius
+            }
         }
 
         // ========== desktop hover actions ==========
