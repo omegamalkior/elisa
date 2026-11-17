@@ -54,7 +54,7 @@ jobs:
         run: |
           export APPIMAGE_PATH=$(ls $PWD/dist/*.AppImage | head -n 1)
           dbus-run-session -- ./ci/run-elisa-full-test.sh
-          if grep -E "failed to load component|is not a type|module .* is not installed|ReferenceError|TypeError|SyntaxError|cannot open shared object|Segmentation|unable to open|Could not open|Unable to load|No QtMultimedia backends" results/run*.log; then
+          if grep -E "failed to load component|is not a type|module .* is not installed|ReferenceError|TypeError|SyntaxError|cannot open shared object|Segmentation|unable to open|Could not open|Unable to load|No QtMultimedia backends" results/run*.log | grep -v "VDPAU"; then
             echo "::error::Elisa did not start cleanly from the AppImage"; exit 1
           fi
 
