@@ -1,0 +1,90 @@
+name: Build Elisa AppImage (album artist option)
+
+on:
+  push:
+    branches: [album-artist-appimage]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  appimage:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/pkgforge-dev/archlinux:latest
+      options: --privileged --device /dev/fuse
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare container
+        uses: pkgforge-dev/anylinux-setup-action@v2
+
+      - name: Install dependencies and build Elisa
+        run: /bin/sh ./ci/appimage/get-dependencies.sh
+
+      - name: Make the AppImage
+        run: /bin/sh ./ci/appimage/make-appimage.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: appimage
+          path: dist
+
+  test:
+    # run the AppImage on a plain Ubuntu machine, in dark mode, and take screenshots
+    needs: appimage
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: appimage
+          path: dist
+
+      - name: Install a virtual screen and tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q xvfb xdotool dbus-x11 python3-pil openbox
+          chmod +x dist/*.AppImage
+          ls -la dist
+
+      - name: Run Elisa and take screenshots
+        run: |
+          export APPIMAGE_PATH=$(ls $PWD/dist/*.AppImage | head -n 1)
+          dbus-run-session -- ./ci/run-elisa-full-test.sh
+          if grep -E "failed to load component|is not a type|module .* is not installed|ReferenceError|TypeError|SyntaxError|cannot open shared object|Segmentation" results/run*.log; then
+            echo "::error::Elisa did not start cleanly from the AppImage"; exit 1
+          fi
+
+      - name: Save screenshots to the album-artist-appimage-results branch
+        if: always()
+        run: |
+          cd results
+          git init -q
+          git checkout -q -b album-artist-appimage-results
+          git add -A
+          git -c user.name="test bot" -c user.email="bot@users.noreply.github.com" commit -q -m "AppImage test run ${{ github.run_number }}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" album-artist-appimage-results
+
+  publish:
+    # add the AppImage to the existing build 10 release, next to the Flatpak
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: appimage
+          path: dist
+
+      - name: Attach to album-artist-build-10
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: album-artist-build-10
+          files: dist/*
+          append_body: true
+          body: |
+
+            **AppImage (any Linux, no install needed):** download `Elisa-album-artist-x86_64.AppImage`, make it executable
+            (right-click → Properties → Permissions → "Is executable", or `chmod +x` in a terminal) and double-click it.
