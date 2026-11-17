@@ -22,6 +22,29 @@ AbstractBrowserDelegate {
 
     readonly property color textColor: highlighted || down ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
 
+    // artists without any album picture get a round badge with their initials
+    readonly property bool showArtistAvatar: imageFallbackUrl.toString().indexOf("view-media-artist") !== -1
+                                             && imageUrl.toString() === ""
+                                             && !(multipleImageUrls && multipleImageUrls.length > 0)
+
+    readonly property real coverRadius: Kirigami.Units.smallSpacing * 2
+
+    // modern rounded card instead of the square highlight
+    background: Rectangle {
+        radius: gridEntry.coverRadius + Kirigami.Units.smallSpacing
+        color: gridEntry.highlighted || gridEntry.down
+               ? Kirigami.Theme.highlightColor
+               : (gridEntry.hovered || gridEntry.hasActiveFocus)
+                 ? Qt.alpha(Kirigami.Theme.textColor, 0.08)
+                 : "transparent"
+
+        Behavior on color {
+            ColorAnimation {
+                duration: Kirigami.Units.shortDuration
+            }
+        }
+    }
+
     onClicked: hasChildren ? open() : enqueue()
 
     // click handler
@@ -49,13 +72,25 @@ AbstractBrowserDelegate {
 
             asynchronous: true
 
-            layer.enabled: GraphicsInfo.api !== GraphicsInfo.Software && !coverImage.usingFallback && !Kirigami.Settings.isMobile // don't use drop shadow on mobile
+            // round the corners of real pictures (not of fallback icons)
+            layer.enabled: GraphicsInfo.api !== GraphicsInfo.Software && !coverImage.usingFallback
             layer.effect: FX.MultiEffect {
                 source: coverImage
 
-                shadowBlur: 0.8
-                shadowEnabled: true
-                shadowColor: palette.shadow
+                maskEnabled: true
+                maskSource: coverMask
+                maskThresholdMin: 0.5
+                maskSpreadAtMin: 1.0
+            }
+
+            Rectangle {
+                id: coverMask
+                width: coverImage.width
+                height: coverImage.height
+                radius: gridEntry.coverRadius
+                visible: false
+                layer.enabled: true
+                layer.smooth: true
             }
         }
 
@@ -73,6 +108,21 @@ AbstractBrowserDelegate {
                 QuarterImage {imageSource: gridEntry.multipleImageUrls[1]}
                 QuarterImage {imageSource: gridEntry.multipleImageUrls[2]}
                 QuarterImage {imageSource: gridEntry.multipleImageUrls[3]}
+            }
+        }
+
+        Component {
+            id: artistAvatar
+            Item {
+                width: parent.width
+                height: parent.height
+
+                Kirigami.Avatar {
+                    anchors.centerIn: parent
+                    width: Math.round(parent.width * 0.86)
+                    height: width
+                    name: gridEntry.mainText
+                }
             }
         }
 
@@ -98,8 +148,10 @@ AbstractBrowserDelegate {
 
             active: gridEntry.delegateLoaded
 
-            sourceComponent: gridEntry.multipleImageUrls && gridEntry.multipleImageUrls.length == 4
-                                ? quartersCover : singleCover
+            sourceComponent: gridEntry.showArtistAvatar
+                                ? artistAvatar
+                                : (gridEntry.multipleImageUrls && gridEntry.multipleImageUrls.length == 4
+                                   ? quartersCover : singleCover)
         }
 
         // ========== desktop hover actions ==========

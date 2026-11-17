@@ -51,6 +51,27 @@ ScrollView {
 
             width: viewModeView.width
 
+            // modern rounded "pill" highlight with a little breathing room
+            leftInset: Kirigami.Units.smallSpacing
+            rightInset: Kirigami.Units.smallSpacing
+            topInset: 1
+            bottomInset: 1
+            leftPadding: Kirigami.Units.largeSpacing + Kirigami.Units.smallSpacing
+            background: Rectangle {
+                radius: Kirigami.Units.smallSpacing * 2
+                color: delegate.highlighted
+                       ? Kirigami.Theme.highlightColor
+                       : (delegate.hovered || delegate.visualFocus)
+                         ? Qt.alpha(Kirigami.Theme.textColor, 0.08)
+                         : "transparent"
+
+                Behavior on color {
+                    ColorAnimation {
+                        duration: Kirigami.Units.shortDuration
+                    }
+                }
+            }
+
             // We need to pass theme icons (i.e. not cover images) by icon.name so that Kirigami.Icon
             // applies the correct color when the delegate is highlighted.
             // HACK: the images provided by the model are in the form "image://icon/view-media-genre"

@@ -395,10 +395,31 @@ FocusScope {
                 id: mainIconComponent
 
                 ImageWithFallback {
+                    id: headerCover
                     asynchronous: true
                     mipmap: true
 
                     fallback: Qt.resolvedUrl(Theme.defaultAlbumImage)
+
+                    // rounded corners for the album cover
+                    layer.enabled: GraphicsInfo.api !== GraphicsInfo.Software && !headerCover.usingFallback
+                    layer.effect: FX.MultiEffect {
+                        source: headerCover
+                        maskEnabled: true
+                        maskSource: headerCoverMask
+                        maskThresholdMin: 0.5
+                        maskSpreadAtMin: 1.0
+                    }
+
+                    Rectangle {
+                        id: headerCoverMask
+                        width: headerCover.width
+                        height: headerCover.height
+                        radius: Kirigami.Units.smallSpacing * 3
+                        visible: false
+                        layer.enabled: true
+                        layer.smooth: true
+                    }
 
                     sourceSize {
                         width: headerBar.imageSourceSize * Screen.devicePixelRatio
