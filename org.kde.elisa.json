@@ -1,0 +1,47 @@
+{
+    "id": "org.kde.elisa",
+    "runtime": "org.kde.Platform",
+    "runtime-version": "6.11",
+    "sdk": "org.kde.Sdk",
+    "command": "elisa",
+    "rename-icon": "elisa",
+    "finish-args": [
+        "--device=dri",
+        "--filesystem=xdg-music",
+        "--own-name=org.mpris.MediaPlayer2.elisa",
+        "--share=ipc",
+        "--share=network",
+        "--socket=fallback-x11",
+        "--socket=pulseaudio",
+        "--socket=wayland",
+        "--system-talk-name=org.freedesktop.UDisks2",
+        "--talk-name=org.freedesktop.FileManager1",
+        "--talk-name=org.freedesktop.PowerManagement.Inhibit",
+        "--talk-name=org.kde.StatusNotifierWatcher"
+    ],
+    "cleanup": [
+        "/include",
+        "/lib/pkgconfig",
+        "/lib/cmake",
+        "/share/doc",
+        "/share/man",
+        "/share/qlogging-categories6/elisa.categories",
+        "*.la",
+        "*.a"
+    ],
+    "modules": [
+        {
+            "name": "elisa",
+            "buildsystem": "cmake-ninja",
+            "config-opts": [
+                "-DCMAKE_BUILD_TYPE=RelWithDebInfo"
+            ],
+            "sources": [
+                {
+                    "type": "dir",
+                    "path": "."
+                }
+            ]
+        }
+    ]
+}

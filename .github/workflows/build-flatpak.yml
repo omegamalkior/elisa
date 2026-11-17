@@ -1,0 +1,36 @@
+name: Build Elisa (album artist option)
+
+on:
+  push:
+    branches: [album-artist-option]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  flatpak:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.11
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the Flatpak
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: elisa-album-artist.flatpak
+          manifest-path: org.kde.elisa.json
+          cache-key: flatpak-builder-${{ github.sha }}
+
+      - name: Publish it as a download
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: album-artist-build-${{ github.run_number }}
+          name: Elisa with "Only show album artists" (build ${{ github.run_number }})
+          body: |
+            Elisa 26.08.3 with the "Only show album artists" option.
+            Install on Steam Deck / Linux: download elisa-album-artist.flatpak, then in Konsole run
+            flatpak install --user elisa-album-artist.flatpak
+          files: elisa-album-artist.flatpak
