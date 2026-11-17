@@ -2,7 +2,7 @@ name: Build Elisa (album artist option)
 
 on:
   push:
-    branches: [album-artist-option]
+    branches: [album-artist-debug]
   workflow_dispatch:
 
 permissions:
@@ -30,50 +30,24 @@ jobs:
           name: bundle
           path: elisa-album-artist.flatpak
 
-  smoke-test:
-    # launch the built app and make sure its screens load before publishing it
+  full-test:
     needs: flatpak
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: bundle
-
       - name: Install
         run: |
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
           sudo apt-get update -q
-          sudo apt-get install -y -q flatpak xvfb dbus-x11
+          sudo apt-get install -y -q flatpak xvfb xdotool dbus-x11 python3-pil openbox
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install --user -y --noninteractive flathub org.kde.Platform//6.11
+          flatpak install --user -y --noninteractive flathub org.freedesktop.Platform.GL.default//25.08 || true
           flatpak install --user -y --noninteractive ./elisa-album-artist.flatpak
-
-      - name: Launch Elisa and check for errors
+      - name: Run
         run: |
-          mkdir -p ~/.var/app/org.kde.elisa/config
-          printf '[UiSettings]\nColorScheme=BreezeDark\n[Views]\nInitialView=AllArtists\n' > ~/.var/app/org.kde.elisa/config/elisarc
-          dbus-run-session -- xvfb-run -a timeout 40 flatpak run org.kde.elisa > elisa.log 2>&1 || true
-          cat elisa.log
-          if grep -E "failed to load component|is not a type|unavailable|ReferenceError|TypeError|SyntaxError" elisa.log; then
-            echo "::error::Elisa's screens failed to load"; exit 1
-          fi
-
-  publish:
-    needs: smoke-test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: bundle
-
-      - name: Publish it as a download
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: album-artist-build-${{ github.run_number }}
-          target_commitish: ${{ github.sha }}
-          name: Elisa with "Only show album artists" (build ${{ github.run_number }})
-          body: |
-            Elisa 26.08.3 with the "Only show album artists" option, a Dark Mode toggle and a more modern look.
-            Install on Steam Deck / Linux: download elisa-album-artist.flatpak and double-click it (or run
-            flatpak install elisa-album-artist.flatpak in Konsole).
-          files: elisa-album-artist.flatpak
+          dbus-run-session -- ./ci/run-elisa-full-test.sh
+          grep COVERDBG results/run1.log | head -20

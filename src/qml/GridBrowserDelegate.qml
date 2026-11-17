@@ -146,6 +146,19 @@ AbstractBrowserDelegate {
                                    ? quartersCover : singleCover)
         }
 
+        Timer {
+            running: true
+            interval: 5000
+            onTriggered: console.warn("COVERDBG", gridEntry.mainText,
+                                      "layer:", coverImageLoader.layer.enabled,
+                                      "api:", GraphicsInfo.api, "sw:", GraphicsInfo.Software,
+                                      "img:", gridEntry.imageUrl,
+                                      "multi:", gridEntry.multipleImageUrls ? gridEntry.multipleImageUrls.length : -1,
+                                      "size:", coverImageLoader.width, coverImageLoader.height,
+                                      "item:", coverImageLoader.item,
+                                      "mask:", coverMask.width, coverMask.height)
+        }
+
         Rectangle {
             id: coverMask
             width: coverImageLoader.width
