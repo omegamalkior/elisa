@@ -73,26 +73,6 @@ AbstractBrowserDelegate {
 
             asynchronous: true
 
-            // round the corners of real pictures (not of fallback icons)
-            layer.enabled: GraphicsInfo.api !== GraphicsInfo.Software && !coverImage.usingFallback
-            layer.effect: FX.MultiEffect {
-                source: coverImage
-
-                maskEnabled: true
-                maskSource: coverMask
-                maskThresholdMin: 0.5
-                maskSpreadAtMin: 1.0
-            }
-
-            Rectangle {
-                id: coverMask
-                width: coverImage.width
-                height: coverImage.height
-                radius: gridEntry.coverRadius
-                visible: false
-                layer.enabled: true
-                layer.smooth: true
-            }
         }
 
         Component {
@@ -149,10 +129,31 @@ AbstractBrowserDelegate {
 
             active: gridEntry.delegateLoaded
 
+            // round the corners of album pictures (not of fallback icons or artist badges)
+            layer.enabled: GraphicsInfo.api !== GraphicsInfo.Software
+                           && !gridEntry.showArtistAvatar
+                           && gridEntry.imageUrl.toString() !== ""
+            layer.effect: FX.MultiEffect {
+                maskEnabled: true
+                maskSource: coverMask
+                maskThresholdMin: 0.5
+                maskSpreadAtMin: 1.0
+            }
+
             sourceComponent: gridEntry.showArtistAvatar
                                 ? artistAvatar
                                 : (gridEntry.multipleImageUrls && gridEntry.multipleImageUrls.length == 4
                                    ? quartersCover : singleCover)
+        }
+
+        Rectangle {
+            id: coverMask
+            width: coverImageLoader.width
+            height: coverImageLoader.height
+            radius: gridEntry.coverRadius
+            visible: false
+            layer.enabled: true
+            layer.smooth: true
         }
 
         // ========== desktop hover actions ==========

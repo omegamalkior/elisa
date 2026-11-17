@@ -227,6 +227,8 @@ public:
         , mSelectTracksFromAlbumArtistAndGenre(mTracksDatabase)
         , mSelectUpToFourLatestCoversFromAlbumArtistNameQuery(mTracksDatabase)
         , mSelectArtistIsAlbumArtistQuery(mTracksDatabase)
+        , mSelectTrackEffectiveAlbumArtistQuery(mTracksDatabase)
+        , mCountAlbumArtistTracksQuery(mTracksDatabase)
         , mSelectAllRecentlyPlayedTracksQuery(mTracksDatabase)
         , mSelectAllFrequentlyPlayedTracksQuery(mTracksDatabase)
         , mClearTracksDataTable(mTracksDatabase)
@@ -427,6 +429,10 @@ public:
     QSqlQuery mSelectUpToFourLatestCoversFromAlbumArtistNameQuery;
 
     QSqlQuery mSelectArtistIsAlbumArtistQuery;
+
+    QSqlQuery mSelectTrackEffectiveAlbumArtistQuery;
+
+    QSqlQuery mCountAlbumArtistTracksQuery;
 
     QSqlQuery mSelectAllRecentlyPlayedTracksQuery;
 
@@ -1266,6 +1272,29 @@ void DatabaseInterface::insertTracksList(const DataTypes::ListTrackDataType &tra
             continue;
         }
         newArtists.push_back(internalOneArtistPartialData(newArtistId));
+    }
+
+    if (useAlbumArtistInArtistsView()) {
+        // An artist first stored as a guest on someone else's album was not
+        // announced above. When their own album arrives in a later batch they
+        // become an album artist: announce them now, exactly once (when all of
+        // their album artist tracks are from this batch).
+        QHash<QString, int> albumArtistTracksInBatch;
+        for (auto trackId : std::as_const(d->mInsertedTracks)) {
+            const auto name = internalEffectiveAlbumArtist(trackId);
+            if (!name.isEmpty()) {
+                ++albumArtistTracksInBatch[name];
+            }
+        }
+        for (auto it = albumArtistTracksInBatch.cbegin(); it != albumArtistTracksInBatch.cend(); ++it) {
+            const auto artistId = internalArtistIdFromName(it.key());
+            if (artistId == 0 || d->mInsertedArtists.contains(artistId)) {
+                continue; // unknown, or already handled above
+            }
+            if (internalAlbumArtistTracksCount(it.key()) == it.value()) {
+                newArtists.push_back(internalOneArtistPartialData(artistId));
+            }
+        }
     }
 
     DataTypes::ListGenreDataType newGenres;
@@ -4418,6 +4447,22 @@ LIMIT 1
 )"_s;
 
             auto albumArtistResult = prepareQuery(d->mSelectArtistIsAlbumArtistQuery, selectArtistIsAlbumArtistText);
+
+            // the artist a track is listed under in album artist mode
+            const auto selectTrackEffectiveAlbumArtistText = uR"(
+SELECT COALESCE(tracks.`AlbumArtistName`, tracks.`ArtistName`) 
+FROM `Tracks` tracks 
+WHERE tracks.`ID` = :trackId
+)"_s;
+            albumArtistResult = prepareQuery(d->mSelectTrackEffectiveAlbumArtistQuery, selectTrackEffectiveAlbumArtistText) && albumArtistResult;
+
+            const auto countAlbumArtistTracksText = uR"(
+SELECT COUNT(tracks.`ID`) 
+FROM `Tracks` tracks 
+WHERE tracks.`AlbumArtistName` = :name OR 
+(tracks.`AlbumArtistName` IS NULL AND tracks.`ArtistName` = :name)
+)"_s;
+            albumArtistResult = prepareQuery(d->mCountAlbumArtistTracksQuery, countAlbumArtistTracksText) && albumArtistResult;
 
             if (!albumArtistResult) {
                 qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::initDataQueries" << d->mSelectArtistIsAlbumArtistQuery.lastQuery();
@@ -10017,6 +10062,32 @@ bool DatabaseInterface::artistIsAlbumArtist(qulonglong artistId)
 {
     d->mSelectArtistIsAlbumArtistQuery.bindValue(u":artistId"_s, artistId);
     return execHasRowQuery(d->mSelectArtistIsAlbumArtistQuery);
+}
+
+QString DatabaseInterface::internalEffectiveAlbumArtist(qulonglong trackId)
+{
+    auto result = QString{};
+
+    d->mSelectTrackEffectiveAlbumArtistQuery.bindValue(u":trackId"_s, trackId);
+    if (execQuery(d->mSelectTrackEffectiveAlbumArtistQuery) && d->mSelectTrackEffectiveAlbumArtistQuery.next()) {
+        result = d->mSelectTrackEffectiveAlbumArtistQuery.value(0).toString();
+    }
+    d->mSelectTrackEffectiveAlbumArtistQuery.finish();
+
+    return result;
+}
+
+int DatabaseInterface::internalAlbumArtistTracksCount(const QString &name)
+{
+    auto result = 0;
+
+    d->mCountAlbumArtistTracksQuery.bindValue(u":name"_s, name);
+    if (execQuery(d->mCountAlbumArtistTracksQuery) && d->mCountAlbumArtistTracksQuery.next()) {
+        result = d->mCountAlbumArtistTracksQuery.value(0).toInt();
+    }
+    d->mCountAlbumArtistTracksQuery.finish();
+
+    return result;
 }
 
 bool DatabaseInterface::useAlbumArtistInArtistsView() const

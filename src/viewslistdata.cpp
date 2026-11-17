@@ -267,8 +267,10 @@ void ViewsListData::artistsAdded(const DataTypes::ListArtistDataType &newData)
 
     Q_EMIT dataAboutToBeAdded(d->mViewsParameters.size(), d->mViewsParameters.size() + newData.size() - 1);
     for (const auto &oneArtist : newData) {
+        // artists without album pictures get the standard artist icon instead of a blank space
+        const auto artistImage = oneArtist.artistArtURI().isEmpty() ? QUrl{QStringLiteral("image://icon/view-media-artist")} : oneArtist.artistArtURI();
         d->mViewsParameters.push_back({oneArtist.name(),
-                                       oneArtist.artistArtURI(),
+                                       artistImage,
                                        ViewManager::GridView,
                                        ViewManager::GenericDataModel,
                                        ElisaUtils::FilterByArtist,

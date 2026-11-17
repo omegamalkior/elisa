@@ -374,6 +374,8 @@ private:
 
     bool artistHasTracks(qulonglong artistId);
     bool artistIsAlbumArtist(qulonglong artistId);
+    QString internalEffectiveAlbumArtist(qulonglong trackId);
+    int internalAlbumArtistTracksCount(const QString &name);
     bool genreHasTracks(qulonglong genreId);
     bool composerHasTracks(qulonglong composerId);
     bool lyricistHasTracks(qulonglong lyricistId);
