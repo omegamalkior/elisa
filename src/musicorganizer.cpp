@@ -18,7 +18,7 @@ namespace
 // a free path: "Name.mp3", "Name (2).mp3", "Name (3).mp3"...
 QString freePath(const QString &folder, const QString &fileName)
 {
-    auto candidate = folder + u'/' + fileName;
+    QString candidate = folder + u'/' + fileName;
     if (!QFileInfo::exists(candidate)) {
         return candidate;
     }
