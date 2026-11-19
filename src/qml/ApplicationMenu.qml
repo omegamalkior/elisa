@@ -72,6 +72,15 @@ Menu {
         }
     }
 
+    Action {
+        text: KI18n.i18nc("@action:inmenu", "Check for Updates")
+        icon.name: "update-none"
+        onTriggered: {
+            applicationMenu.close()
+            ElisaApplication.updateChecker.check(true)
+        }
+    }
+
     Menu {
         id: sleepTimerMenu
 

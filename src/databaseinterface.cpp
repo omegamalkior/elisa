@@ -1233,7 +1233,18 @@ void DatabaseInterface::insertTracksList(const DataTypes::ListTrackDataType &tra
 
     initChangesTrackers();
 
+    QSet<QUrl> hiddenFiles;
+    {
+        QMutexLocker locker(&mHiddenFilesMutex);
+        hiddenFiles = mHiddenFiles;
+    }
+
     for(const auto &oneTrack : tracks) {
+        if (!hiddenFiles.isEmpty() && hiddenFiles.contains(oneTrack.resourceURI())) {
+            // the user hid this file: keep it out of the library
+            continue;
+        }
+
         switch (oneTrack.elementType())
         {
         case ElisaUtils::Track:
@@ -5635,7 +5646,7 @@ tracks.`Priority` = (
      (tracks.`AlbumArtistName` IS NULL OR tracks.`AlbumArtistName` = tracks2.`AlbumArtistName`) AND 
      (tracks.`AlbumPath` IS NULL OR tracks.`AlbumPath` = tracks2.`AlbumPath`)
 )
-ORDER BY tracks.`DiscNumber` ASC, 
+ORDER BY (CASE WHEN IFNULL(tracks.`DiscNumber`, 0) < 1 THEN 1 ELSE tracks.`DiscNumber` END) ASC, 
 tracks.`TrackNumber` ASC
 )"_s;
 
@@ -5679,7 +5690,7 @@ tracks.`Priority` = (
      (tracks.`AlbumArtistName` IS NULL OR tracks.`AlbumArtistName` = tracks2.`AlbumArtistName`) AND 
      (tracks.`AlbumPath` IS NULL OR tracks.`AlbumPath` = tracks2.`AlbumPath`)
 )
-ORDER BY tracks.`DiscNumber` ASC, 
+ORDER BY (CASE WHEN IFNULL(tracks.`DiscNumber`, 0) < 1 THEN 1 ELSE tracks.`DiscNumber` END) ASC, 
 tracks.`TrackNumber` ASC
 )"_s;
 
@@ -7165,7 +7176,7 @@ tracks.`Priority` = (
 )
 ORDER BY 
 album.`Title` ASC, 
-tracks.`DiscNumber` ASC, 
+(CASE WHEN IFNULL(tracks.`DiscNumber`, 0) < 1 THEN 1 ELSE tracks.`DiscNumber` END) ASC, 
 tracks.`TrackNumber` ASC, 
 tracks.`Title` ASC
 
@@ -7317,7 +7328,7 @@ tracks.`Priority` = (
 )
 ORDER BY 
 album.`Title` ASC, 
-tracks.`DiscNumber` ASC, 
+(CASE WHEN IFNULL(tracks.`DiscNumber`, 0) < 1 THEN 1 ELSE tracks.`DiscNumber` END) ASC, 
 tracks.`TrackNumber` ASC, 
 tracks.`Title` ASC
 
@@ -7455,7 +7466,7 @@ tracks.`Priority` = (
 )
 ORDER BY 
 album.`Title` ASC, 
-tracks.`DiscNumber` ASC, 
+(CASE WHEN IFNULL(tracks.`DiscNumber`, 0) < 1 THEN 1 ELSE tracks.`DiscNumber` END) ASC, 
 tracks.`TrackNumber` ASC, 
 tracks.`Title` ASC
 
@@ -10299,6 +10310,12 @@ int DatabaseInterface::internalAlbumArtistTracksCount(const QString &name)
     d->mCountAlbumArtistTracksQuery.finish();
 
     return result;
+}
+
+void DatabaseInterface::setHiddenFiles(const QSet<QUrl> &files)
+{
+    QMutexLocker locker(&mHiddenFilesMutex);
+    mHiddenFiles = files;
 }
 
 bool DatabaseInterface::useAlbumArtistInArtistsView() const

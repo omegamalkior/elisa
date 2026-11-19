@@ -239,6 +239,16 @@ Kirigami.ApplicationWindow {
 
     readonly property int initialViewIndex: 3
 
+    // right-click menu shared by all albums and songs
+    function openEntryMenu(info) {
+        entryContextMenu.openFor(info)
+    }
+
+    EntryContextMenu {
+        id: entryContextMenu
+        onNotify: message => mainWindow.showPassiveNotification(message, 7000)
+    }
+
     // volume keyboard shortcuts
     Shortcut {
         sequences: ["Ctrl+Up"]
@@ -583,6 +593,11 @@ Kirigami.ApplicationWindow {
                         }
                     }
                 }
+            }
+
+            UpdateBanner {
+                Layout.fillWidth: true
+                Layout.margins: visible ? Kirigami.Units.smallSpacing : 0
             }
 
             ContentView {

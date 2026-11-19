@@ -17,6 +17,10 @@ set(elisaLib_SOURCES
     manageheaderbar.cpp
     manageaudioplayer.cpp
     sleeptimer.cpp
+    blacklistmanager.cpp
+    updatechecker.cpp
+    updatereleaseinfo.cpp
+    tracknamecleaner.cpp
     trackslistener.cpp
     elisaapplication.cpp
     modeldataloader.cpp
@@ -232,11 +236,15 @@ set(elisaLib_SOURCES
     )
 
 add_library(elisaLib ${elisaLib_SOURCES})
+
+# number of the published build, used by the built-in update check (0: not a published build)
+set(ELISA_FORK_BUILD_NUMBER "0" CACHE STRING "Build number of this Elisa variant")
+target_compile_definitions(elisaLib PRIVATE ELISA_FORK_BUILD_NUMBER=${ELISA_FORK_BUILD_NUMBER})
 target_link_libraries(elisaLib
     LINK_PUBLIC
     Qt::Multimedia Qt::Qml KF6::ConfigGui
     LINK_PRIVATE
-    Qt::Core Qt::Quick Qt::Sql Qt::Widgets Qt::Concurrent
+    Qt::Core Qt::Quick Qt::Sql Qt::Widgets Qt::Concurrent Qt::Network
     KF6::I18n KF6::CoreAddons
     KF6::ConfigCore
     KF6::ColorScheme
@@ -351,6 +359,8 @@ qt_add_qml_module(elisaLib
         qml/GridBrowserDelegate.qml
         qml/HeaderBar.qml
         qml/ImageWithFallback.qml
+        qml/EntryContextMenu.qml
+        qml/UpdateBanner.qml
         qml/LabelWithToolTip.qml
         qml/ListBrowserDelegate.qml
         qml/LyricsView.qml

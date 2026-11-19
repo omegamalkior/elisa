@@ -25,6 +25,8 @@ QQC.ItemDelegate {
     property var multipleImageUrls
 
     property url fileUrl
+    property var databaseId: 0
+    property var entryType
     property bool isPartial
     property bool isSelected
     property bool hasChildren: true
@@ -75,6 +77,20 @@ QQC.ItemDelegate {
 
     Keys.onReturnPressed: open()
     Keys.onEnterPressed: open()
+
+    // right click: the actions above, plus hide/delete for albums
+    TapHandler {
+        acceptedButtons: Qt.RightButton
+        enabled: !Kirigami.Settings.isMobile
+        onTapped: mainWindow.openEntryMenu({
+            actions: dataEntry.actions,
+            isAlbum: true,
+            canHide: dataEntry.entryType === ElisaUtils.Album && dataEntry.databaseId > 0,
+            databaseId: dataEntry.databaseId,
+            title: dataEntry.mainText,
+            artist: dataEntry.secondaryText
+        })
+    }
 
     Accessible.role: Accessible.ListItem
     Accessible.name: mainText

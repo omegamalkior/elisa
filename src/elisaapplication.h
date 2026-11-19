@@ -28,6 +28,8 @@ class MediaPlayListProxyModel;
 class AudioWrapper;
 class ManageAudioPlayer;
 class SleepTimer;
+class BlacklistManager;
+class UpdateChecker;
 class ManageMediaPlayerControl;
 class ManageHeaderBar;
 class ElisaApplicationPrivate;
@@ -72,6 +74,19 @@ class ELISALIB_EXPORT ElisaApplication : public QObject
     Q_PROPERTY(SleepTimer *sleepTimer
                READ sleepTimer
                CONSTANT)
+
+    Q_PROPERTY(BlacklistManager *blacklist
+               READ blacklist
+               CONSTANT)
+
+    Q_PROPERTY(UpdateChecker *updateChecker
+               READ updateChecker
+               CONSTANT)
+
+    Q_PROPERTY(bool showFileNames
+               READ showFileNames
+               WRITE setShowFileNames
+               NOTIFY showFileNamesChanged)
 
     Q_PROPERTY(ManageMediaPlayerControl *playerControl
                READ playerControl
@@ -145,6 +160,20 @@ public:
 
     [[nodiscard]] SleepTimer *sleepTimer() const;
 
+    [[nodiscard]] BlacklistManager *blacklist() const;
+
+    [[nodiscard]] UpdateChecker *updateChecker() const;
+
+    /// Song lists show file names (true) or adjusted, cleaned up names (false, the default)
+    [[nodiscard]] bool showFileNames() const;
+    void setShowFileNames(bool value);
+
+    /// A song title without track number, file extension and download leftovers
+    Q_INVOKABLE QString adjustedTitle(const QString &title) const;
+
+    /// The name of the file a song is stored in
+    Q_INVOKABLE QString fileNameOf(const QUrl &file) const;
+
     [[nodiscard]] ManageMediaPlayerControl *playerControl() const;
 
     [[nodiscard]] ManageHeaderBar *manageHeaderBar() const;
@@ -206,6 +235,8 @@ Q_SIGNALS:
     void useFavoriteStyleRatingsChanged();
 
     void useAlbumArtistInArtistsViewChanged();
+
+    void showFileNamesChanged();
 
     void commitDataRequest();
 

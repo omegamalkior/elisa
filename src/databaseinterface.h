@@ -21,6 +21,8 @@
 #include <QDateTime>
 
 #include <atomic>
+#include <QMutex>
+#include <QSet>
 #include <memory>
 #include <optional>
 
@@ -118,6 +120,12 @@ public:
     [[nodiscard]] bool useAlbumArtistInArtistsView() const;
 
     void setUseAlbumArtistInArtistsView(bool value);
+
+    /**
+     * Files the user chose to hide: they are never added to the library.
+     * Thread safe: can be called from any thread.
+     */
+    void setHiddenFiles(const QSet<QUrl> &files);
 
 Q_SIGNALS:
 
@@ -393,6 +401,10 @@ private:
     std::unique_ptr<DatabaseInterfacePrivate> d;
 
     std::atomic_bool mUseAlbumArtistInArtistsView{false};
+
+    QMutex mHiddenFilesMutex;
+
+    QSet<QUrl> mHiddenFiles;
 
 };
 

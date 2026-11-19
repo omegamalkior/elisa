@@ -38,6 +38,7 @@ find_package(Qt6 ${REQUIRED_QT_VERSION} CONFIG REQUIRED COMPONENTS
     Gui
     Multimedia
     Network
+    Network
     Qml
     Quick
     QuickControls2

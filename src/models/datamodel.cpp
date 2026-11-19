@@ -593,7 +593,10 @@ void DataModel::tracksAdded(ListTrackDataType newData)
             for (int trackIndex = 0; trackIndex < d->mAllTrackData.count(); ++trackIndex) {
                 const auto &oneTrack = d->mAllTrackData[trackIndex];
 
-                if (oneTrack.discNumber() >= newTrack.discNumber() && oneTrack.trackNumber() > newTrack.trackNumber()) {
+                // a song without a disc number counts as disc 1, like in other music players
+                const auto oneDisc = std::max(1, oneTrack.discNumber());
+                const auto newDisc = std::max(1, newTrack.discNumber());
+                if (oneDisc > newDisc || (oneDisc == newDisc && oneTrack.trackNumber() > newTrack.trackNumber())) {
                     beginInsertRows({}, trackIndex, trackIndex);
                     d->mAllTrackData.insert(trackIndex, newTrack);
                     endInsertRows();

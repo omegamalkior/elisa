@@ -80,6 +80,7 @@ void ElisaConfigurationDialog::save()
     Elisa::ElisaConfiguration::setScanAtStartup(mScanAtStartup);
     Elisa::ElisaConfiguration::setUseFavoriteStyleRatings(mUseFavoriteStyleRatings);
     Elisa::ElisaConfiguration::setUseAlbumArtistInArtistsView(mUseAlbumArtistInArtistsView);
+    Elisa::ElisaConfiguration::setCheckForUpdatesAtStartup(mCheckForUpdatesAtStartup);
 
     Elisa::ElisaConfiguration::setEmbeddedView(Elisa::ElisaConfiguration::EnumEmbeddedView::NoView);
     switch (mEmbeddedView)
@@ -242,6 +243,17 @@ void ElisaConfigurationDialog::setUseFavoriteStyleRatings(bool useFavoriteStyleR
     setDirty();
 }
 
+void ElisaConfigurationDialog::setCheckForUpdatesAtStartup(bool checkForUpdatesAtStartup)
+{
+    if (mCheckForUpdatesAtStartup == checkForUpdatesAtStartup) {
+        return;
+    }
+    mCheckForUpdatesAtStartup = checkForUpdatesAtStartup;
+    Q_EMIT checkForUpdatesAtStartupChanged();
+
+    setDirty();
+}
+
 void ElisaConfigurationDialog::setUseAlbumArtistInArtistsView(bool useAlbumArtistInArtistsView)
 {
     if (mUseAlbumArtistInArtistsView == useAlbumArtistInArtistsView) {
@@ -284,6 +296,9 @@ void ElisaConfigurationDialog::configChanged()
 
     mUseAlbumArtistInArtistsView = Elisa::ElisaConfiguration::useAlbumArtistInArtistsView();
     Q_EMIT useAlbumArtistInArtistsViewChanged();
+
+    mCheckForUpdatesAtStartup = Elisa::ElisaConfiguration::checkForUpdatesAtStartup();
+    Q_EMIT checkForUpdatesAtStartupChanged();
 
     mAlwaysUseAbsolutePlaylistPaths = Elisa::ElisaConfiguration::alwaysUseAbsolutePlaylistPaths();
     Q_EMIT alwaysUseAbsolutePlaylistPathsChanged();

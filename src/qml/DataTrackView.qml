@@ -75,6 +75,7 @@ AbstractDataView {
 
         trackUrl: model.url
         dataType: model.dataType
+        position: entry.index + 1
         title: model.display ? model.display : ""
         artist: model.artist ? model.artist : ""
         album: model.album ? model.album : ""

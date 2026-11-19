@@ -16,6 +16,7 @@
         "--socket=wayland",
         "--system-talk-name=org.freedesktop.UDisks2",
         "--talk-name=org.freedesktop.FileManager1",
+        "--talk-name=org.freedesktop.Flatpak",
         "--talk-name=org.freedesktop.PowerManagement.Inhibit",
         "--talk-name=org.kde.StatusNotifierWatcher"
     ],
@@ -34,7 +35,8 @@
             "name": "elisa",
             "buildsystem": "cmake-ninja",
             "config-opts": [
-                "-DCMAKE_BUILD_TYPE=RelWithDebInfo"
+                "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+                "-DELISA_FORK_BUILD_NUMBER=0"
             ],
             "sources": [
                 {

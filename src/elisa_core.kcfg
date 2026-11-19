@@ -43,6 +43,18 @@
       false
     </default>
   </entry>
+  <entry key="CheckForUpdatesAtStartup" type="Bool" >
+    <label>Look for a newer build every time Elisa starts</label>
+    <default>
+      true
+    </default>
+  </entry>
+  <entry key="ShowFileNames" type="Bool" >
+    <label>Show file names instead of adjusted song names</label>
+    <default>
+      false
+    </default>
+  </entry>
   <entry key="UseAlbumArtistInArtistsView" type="Bool" >
     <label>Only list album artists in the Artists view</label>
     <default>

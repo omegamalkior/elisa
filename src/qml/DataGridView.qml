@@ -82,6 +82,8 @@ AbstractDataView {
 
             mainText: delegatePackage.display
             fileUrl: delegatePackage.url ? delegatePackage.url : ""
+            databaseId: delegatePackage.databaseId ? delegatePackage.databaseId : 0
+            entryType: delegatePackage.dataType
             secondaryText: delegatePackage.secondaryText ? delegatePackage.secondaryText : ""
             imageUrl: delegatePackage.imageUrl ? delegatePackage.imageUrl : ""
             multipleImageUrls: delegatePackage.multipleImageUrls
@@ -113,6 +115,8 @@ AbstractDataView {
             index: delegatePackage.index
             mainText: delegatePackage.display
             fileUrl: delegatePackage.url ? delegatePackage.url : ""
+            databaseId: delegatePackage.databaseId ? delegatePackage.databaseId : 0
+            entryType: delegatePackage.dataType
             secondaryText: delegatePackage.secondaryText ? delegatePackage.secondaryText : ""
             imageUrl: delegatePackage.imageUrl ? delegatePackage.imageUrl : ""
             multipleImageUrls: delegatePackage.multipleImageUrls

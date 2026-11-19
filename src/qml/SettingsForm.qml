@@ -117,6 +117,17 @@ ColumnLayout {
         QQC2.CheckBox {
             Layout.fillWidth: true
 
+            text: KI18n.i18nc("@option:check", "Check for updates on startup")
+
+            checked: ElisaConfigurationDialog.checkForUpdatesAtStartup
+            onToggled: ElisaConfigurationDialog.checkForUpdatesAtStartup = checked
+            Accessible.onToggleAction: onToggled
+            Accessible.onPressAction: onToggled
+        }
+
+        QQC2.CheckBox {
+            Layout.fillWidth: true
+
             text: KI18n.i18nc("@option:check", "Scan for new music on startup")
 
             checked: ElisaConfigurationDialog.scanAtStartup
@@ -201,6 +212,90 @@ ColumnLayout {
             wrapMode: Text.WordWrap
             font: Kirigami.Theme.smallFont
             opacity: 0.7
+        }
+
+        Item {
+            Kirigami.FormData.isSection: true
+        }
+
+        // the blacklist: albums and songs hidden with the right-click menu
+        ColumnLayout {
+            id: hiddenMusicList
+
+            Kirigami.FormData.label: KI18n.i18nc("@title:group", "Hidden music:")
+            Kirigami.FormData.labelAlignment: Qt.AlignTop
+
+            Layout.fillWidth: true
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 22
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.Label {
+                Layout.fillWidth: true
+                visible: ElisaApplication.blacklist.count === 0
+                text: KI18n.i18nc("@info", "Nothing is hidden. Right-click an album or a song and choose “Hide from Elisa”.")
+                wrapMode: Text.WordWrap
+                opacity: 0.7
+            }
+
+            Repeater {
+                model: ElisaApplication.blacklist
+
+                delegate: RowLayout {
+                    id: hiddenEntry
+
+                    required property int index
+                    required property string title
+                    required property string subtitle
+                    required property bool hidden
+
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Switch {
+                        checked: hiddenEntry.hidden
+                        onToggled: ElisaApplication.blacklist.setHidden(hiddenEntry.index, checked)
+
+                        Accessible.name: KI18n.i18nc("@option:check", "Hide %1", hiddenEntry.title)
+                        QQC2.ToolTip.visible: hovered
+                        QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+                        QQC2.ToolTip.text: hiddenEntry.hidden
+                                           ? KI18n.i18nc("@info:tooltip", "Hidden. Switch off to show it in Elisa again.")
+                                           : KI18n.i18nc("@info:tooltip", "Shown. Switch on to hide it again.")
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 0
+
+                        QQC2.Label {
+                            Layout.fillWidth: true
+                            text: hiddenEntry.title
+                            elide: Text.ElideRight
+                        }
+
+                        QQC2.Label {
+                            Layout.fillWidth: true
+                            text: hiddenEntry.hidden
+                                  ? hiddenEntry.subtitle
+                                  : KI18n.i18nc("@info kind of music, then its state", "%1 · shown", hiddenEntry.subtitle)
+                            elide: Text.ElideRight
+                            font: Kirigami.Theme.smallFont
+                            opacity: 0.7
+                        }
+                    }
+
+                    QQC2.ToolButton {
+                        icon.name: "list-remove"
+                        text: KI18n.i18nc("@action:button", "Remove from the hidden list")
+                        display: QQC2.AbstractButton.IconOnly
+                        onClicked: ElisaApplication.blacklist.remove(hiddenEntry.index)
+
+                        QQC2.ToolTip.visible: hovered
+                        QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+                        QQC2.ToolTip.text: KI18n.i18nc("@info:tooltip", "Remove from this list and show it in Elisa again")
+                    }
+                }
+            }
         }
 
         Item {

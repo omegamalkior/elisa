@@ -29,6 +29,8 @@ ItemDelegate {
     property string duration
     property url imageUrl
     property int trackNumber
+    // place of the song in the list (1, 2, 3...), 0 when not known
+    property int position: 0
     property int discNumber
     property int rating
     property bool hideDiscNumber
@@ -37,6 +39,18 @@ ItemDelegate {
     property bool detailedView: true
     property bool editingRating: false
     readonly property bool isFavorite: rating === 10
+
+    // what is shown as the name: the adjusted (cleaned up) title, or the file name
+    readonly property string displayTitle: {
+        if (ElisaApplication.showFileNames) {
+            const fileName = ElisaApplication.fileNameOf(trackUrl)
+            return fileName !== "" ? fileName : title
+        }
+        return ElisaApplication.adjustedTitle(title)
+    }
+    // number in front of the name on album pages: the place in the album instead of
+    // the raw tag number (which can be 2, 12, 16...), and nothing in front of file names
+    readonly property int shownNumber: ElisaApplication.showFileNames ? 0 : (position > 0 ? position : trackNumber)
 
     readonly property bool imageVisible: delegateLoaded && (detailedView || Kirigami.Settings.isMobile)
 
@@ -59,6 +73,20 @@ ItemDelegate {
 
     Keys.onReturnPressed: enqueue()
     Keys.onEnterPressed: enqueue()
+
+    // right click: the song actions, names choice, hide and delete
+    TapHandler {
+        acceptedButtons: Qt.RightButton
+        enabled: !Kirigami.Settings.isMobile
+        onTapped: mainWindow.openEntryMenu({
+            actions: mediaTrack.actions,
+            isAlbum: false,
+            canHide: mediaTrack.dataType === ElisaUtils.Track && mediaTrack.trackUrl.toString().substring(0, 7) === 'file://',
+            fileUrl: mediaTrack.trackUrl,
+            title: mediaTrack.title,
+            artist: mediaTrack.artist
+        })
+    }
 
     property bool delegateLoaded: true
 
@@ -194,39 +222,39 @@ ItemDelegate {
 
                     text: {
                         if (mediaTrack.detailedView) {
-                            return mediaTrack.title;
+                            return mediaTrack.displayTitle;
                         } else if (Kirigami.Settings.isMobile) {
                             // specific artist/album page (mobile)
                             // not detailed view refers to an album page, in which we should put track numbers
-                            if (mediaTrack.trackNumber !== 0 && mediaTrack.trackNumber !== -1 && mediaTrack.trackNumber !== undefined) {
+                            if (mediaTrack.shownNumber !== 0 && mediaTrack.shownNumber !== -1 && mediaTrack.shownNumber !== undefined) {
                                 return KI18n.i18nc("@item:intable %1: track number. %2: track title.",
                                         "%1 – %2",
-                                        mediaTrack.trackNumber.toLocaleString(Qt.locale(), 'f', 0),
-                                        mediaTrack.title);
+                                        mediaTrack.shownNumber.toLocaleString(Qt.locale(), 'f', 0),
+                                        mediaTrack.displayTitle);
                             } else {
-                                return mediaTrack.title;
+                                return mediaTrack.displayTitle;
                             }
                         } else {
                             // specific artist/album page (desktop)
-                            if (mediaTrack.trackNumber !== 0 && mediaTrack.trackNumber !== -1 && mediaTrack.trackNumber !== undefined) {
+                            if (mediaTrack.shownNumber !== 0 && mediaTrack.shownNumber !== -1 && mediaTrack.shownNumber !== undefined) {
                                 if (mediaTrack.albumArtist !== undefined && mediaTrack.artist !== mediaTrack.albumArtist) {
                                     return KI18n.i18nc("@item:intable %1: track number. %2: track title. %3: artist name",
                                                 "%1 – %2 – %3",
-                                                mediaTrack.trackNumber.toLocaleString(Qt.locale(), 'f', 0),
-                                                mediaTrack.title, mediaTrack.artist);
+                                                mediaTrack.shownNumber.toLocaleString(Qt.locale(), 'f', 0),
+                                                mediaTrack.displayTitle, mediaTrack.artist);
                                 } else {
                                     return KI18n.i18nc("@item:intable %1: track number. %2: track title.",
                                                 "%1 – %2",
-                                                mediaTrack.trackNumber.toLocaleString(Qt.locale(), 'f', 0),
-                                                mediaTrack.title);
+                                                mediaTrack.shownNumber.toLocaleString(Qt.locale(), 'f', 0),
+                                                mediaTrack.displayTitle);
                                 }
                             } else {
                                 if (mediaTrack.albumArtist !== undefined && mediaTrack.artist !== mediaTrack.albumArtist) {
                                     return KI18n.i18nc("@item:intable %1: track title. %2: artist name",
                                                 "%1 – %2",
-                                                mediaTrack.title, mediaTrack.artist);
+                                                mediaTrack.displayTitle, mediaTrack.artist);
                                 } else {
-                                    return mediaTrack.title;
+                                    return mediaTrack.displayTitle;
                                 }
                             }
                         }

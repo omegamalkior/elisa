@@ -53,6 +53,12 @@
 #include <QMimeDatabase>
 #include <QMimeType>
 #include "sleeptimer.h"
+#include "blacklistmanager.h"
+#include "updatechecker.h"
+#include "tracknamecleaner.h"
+#include "filescanner.h"
+#include "databaseinterface.h"
+#include <QTimer>
 #include <QPalette>
 #include <QDebug>
 #include <QEvent>
@@ -91,6 +97,12 @@ public:
     std::unique_ptr<ManageAudioPlayer> mAudioControl;
 
     std::unique_ptr<SleepTimer> mSleepTimer = std::make_unique<SleepTimer>();
+
+    std::unique_ptr<BlacklistManager> mBlacklist = std::make_unique<BlacklistManager>();
+
+    std::unique_ptr<UpdateChecker> mUpdateChecker = std::make_unique<UpdateChecker>();
+
+    bool mShowFileNames = false;
 
     std::unique_ptr<ManageMediaPlayerControl> mPlayerControl;
 
@@ -464,6 +476,38 @@ void ElisaApplication::initializeModels()
     d->mMusicManager = std::make_unique<MusicListenersManager>();
     d->mUseAlbumArtistInArtistsView = Elisa::ElisaConfiguration::self()->useAlbumArtistInArtistsView();
     d->mMusicManager->viewDatabase()->setUseAlbumArtistInArtistsView(d->mUseAlbumArtistInArtistsView);
+
+    // hidden music: keep it out of the library, and read files again when they are shown again
+    d->mBlacklist->setDatabase(d->mMusicManager->viewDatabase());
+    connect(d->mBlacklist.get(), &BlacklistManager::filesToShowAgain, this, [this](const QList<QUrl> &files) {
+        FileScanner scanner;
+        DataTypes::ListTrackDataType tracks;
+        for (const auto &file : files) {
+            if (!file.isLocalFile() || !scanner.shouldScanFile(file.toLocalFile())) {
+                continue;
+            }
+            auto track = scanner.scanOneFile(file);
+            if (track.isValid()) {
+                tracks.push_back(std::move(track));
+            }
+        }
+        if (tracks.isEmpty()) {
+            return;
+        }
+        auto *database = d->mMusicManager->viewDatabase();
+        QMetaObject::invokeMethod(database, [database, tracks] {
+            database->insertTracksList(tracks);
+        });
+    });
+
+    d->mShowFileNames = Elisa::ElisaConfiguration::self()->showFileNames();
+
+    // look for a newer build shortly after every start
+    if (Elisa::ElisaConfiguration::self()->checkForUpdatesAtStartup()) {
+        QTimer::singleShot(2500, d->mUpdateChecker.get(), [this] {
+            d->mUpdateChecker->check(false);
+        });
+    }
     Q_EMIT musicManagerChanged();
 
     d->mMediaPlayList = std::make_unique<MediaPlayList>();
@@ -654,6 +698,44 @@ bool ElisaApplication::useFavoriteStyleRatings() const
 bool ElisaApplication::useAlbumArtistInArtistsView() const
 {
     return d->mUseAlbumArtistInArtistsView;
+}
+
+BlacklistManager *ElisaApplication::blacklist() const
+{
+    return d->mBlacklist.get();
+}
+
+UpdateChecker *ElisaApplication::updateChecker() const
+{
+    return d->mUpdateChecker.get();
+}
+
+bool ElisaApplication::showFileNames() const
+{
+    return d->mShowFileNames;
+}
+
+void ElisaApplication::setShowFileNames(bool value)
+{
+    if (d->mShowFileNames == value) {
+        return;
+    }
+
+    d->mShowFileNames = value;
+    Q_EMIT showFileNamesChanged();
+
+    Elisa::ElisaConfiguration::setShowFileNames(value);
+    Elisa::ElisaConfiguration::self()->save();
+}
+
+QString ElisaApplication::adjustedTitle(const QString &title) const
+{
+    return TrackNameCleaner::adjustedTitle(title);
+}
+
+QString ElisaApplication::fileNameOf(const QUrl &file) const
+{
+    return TrackNameCleaner::fileName(file);
 }
 
 SleepTimer *ElisaApplication::sleepTimer() const

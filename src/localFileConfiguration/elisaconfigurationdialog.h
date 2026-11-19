@@ -88,6 +88,11 @@ class ELISALIB_EXPORT ElisaConfigurationDialog : public QObject
                WRITE setUseAlbumArtistInArtistsView
                NOTIFY useAlbumArtistInArtistsViewChanged)
 
+    Q_PROPERTY(bool checkForUpdatesAtStartup
+               READ checkForUpdatesAtStartup
+               WRITE setCheckForUpdatesAtStartup
+               NOTIFY checkForUpdatesAtStartupChanged)
+
 public:
 
     static ElisaConfigurationDialog *create(QQmlEngine *engine, QJSEngine *scriptEngine)
@@ -164,6 +169,11 @@ public:
         return mUseAlbumArtistInArtistsView;
     }
 
+    [[nodiscard]] bool checkForUpdatesAtStartup() const
+    {
+        return mCheckForUpdatesAtStartup;
+    }
+
     Q_INVOKABLE void removeMusicLocation(const QString &location);
 
 
@@ -195,6 +205,8 @@ Q_SIGNALS:
 
     void useAlbumArtistInArtistsViewChanged();
 
+    void checkForUpdatesAtStartupChanged();
+
 public Q_SLOTS:
 
     void setRootPath(const QStringList &rootPath);
@@ -225,6 +237,8 @@ public Q_SLOTS:
 
     void setUseAlbumArtistInArtistsView(bool useAlbumArtistInArtistsView);
 
+    void setCheckForUpdatesAtStartup(bool checkForUpdatesAtStartup);
+
 private Q_SLOTS:
 
     void configChanged();
@@ -254,6 +268,8 @@ private:
     bool mUseFavoriteStyleRatings = false;
 
     bool mUseAlbumArtistInArtistsView = false;
+
+    bool mCheckForUpdatesAtStartup = true;
 
     ElisaUtils::PlayListEntryType mEmbeddedView = ElisaUtils::Unknown;
 
