@@ -20,8 +20,12 @@ namespace TrackNameCleaner
  *
  * Removes a leading track number, a file extension, underscores and the usual
  * download leftovers. A title that would end up empty is returned unchanged.
+ *
+ * When the song's track number is known, a title starting with exactly that number
+ * loses it too ("12 The Real You" as track 12 -> "The Real You"), while "99 Luftballons"
+ * as track 3 stays as it is.
  */
-[[nodiscard]] ELISALIB_EXPORT QString adjustedTitle(const QString &title);
+[[nodiscard]] ELISALIB_EXPORT QString adjustedTitle(const QString &title, int trackNumber = 0);
 
 /// The name of the file a song is stored in ("03 - Painkiller.mp3")
 [[nodiscard]] ELISALIB_EXPORT QString fileName(const QUrl &file);

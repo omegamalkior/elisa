@@ -69,6 +69,8 @@ AbstractDataView {
         required property var multipleImageUrls
         required property bool hasChildren
         required property var fullData
+        required property var databaseId
+        required property var dataType
 
         GridBrowserDelegate {
             Package.name: 'grid'

@@ -83,6 +83,11 @@ class ELISALIB_EXPORT ElisaApplication : public QObject
                READ updateChecker
                CONSTANT)
 
+    Q_PROPERTY(bool importMenuEnabled
+               READ importMenuEnabled
+               WRITE setImportMenuEnabled
+               NOTIFY importMenuEnabledChanged)
+
     Q_PROPERTY(bool showFileNames
                READ showFileNames
                WRITE setShowFileNames
@@ -168,8 +173,12 @@ public:
     [[nodiscard]] bool showFileNames() const;
     void setShowFileNames(bool value);
 
+    /// "Elisa: Import to Music" in the file manager's right-click menu
+    [[nodiscard]] bool importMenuEnabled() const;
+    void setImportMenuEnabled(bool value);
+
     /// A song title without track number, file extension and download leftovers
-    Q_INVOKABLE QString adjustedTitle(const QString &title) const;
+    Q_INVOKABLE QString adjustedTitle(const QString &title, int trackNumber = 0) const;
 
     /// The name of the file a song is stored in
     Q_INVOKABLE QString fileNameOf(const QUrl &file) const;
@@ -237,6 +246,8 @@ Q_SIGNALS:
     void useAlbumArtistInArtistsViewChanged();
 
     void showFileNamesChanged();
+
+    void importMenuEnabledChanged();
 
     void commitDataRequest();
 

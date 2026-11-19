@@ -218,29 +218,88 @@ mk "16. Let You Down (Live).mp3" "16. Let You Down (Live)" 16 1
 mk "01 Human Race.mp3" "01 Human Race" 1 ""
 ls -la "$H"
 
-RC_TRACK_Y=${RC_TRACK_Y:-330}
+HIDDEN() { find $HOME -name hidden-music.json 2>/dev/null | head -n 1; }
+MENUDIR=$HOME/.local/share/kio/servicemenus
+check "file manager action was installed at startup" '[ -x "$MENUDIR/elisa-import-to-music.desktop" ] && [ -x "$MENUDIR/elisa-import-to-music.sh" ]'
+cp $MENUDIR/elisa-import-to-music.desktop $OUT/ 2>/dev/null
+
+# album page rows (playlist at its default width): 1st song y=252, then every 46
+ROW1=252
+# the right-click menu opens at the pointer: entries below it
+M_NAMES=180; M_HIDE=212; M_DELETE=239
 write_config false NoView AllAlbums
 start_elisa run3
 shot albums-with-human
 click $TILE1 320 4;    shot album-human-adjusted-names-and-order
-rclick 450 $RC_TRACK_Y; shot track-right-click-menu-a
+
+# names: file names, then back to adjusted names
+rclick 450 $ROW1;      shot song-right-click-menu
+click 530 $((ROW1+M_NAMES)) 3; shot song-list-file-names
+check "right-click > Show File Names is remembered" 'grep -q "ShowFileNames=true" $CONF/elisarc'
+rclick 450 $ROW1;      shot song-right-click-menu-file-names-mode
+click 530 $((ROW1+M_NAMES)) 3; shot song-list-adjusted-names-again
+check "right-click > Show Adjusted Names switches back" '! grep -q "ShowFileNames=true" $CONF/elisarc'
+
+# hide the first song (Human Race)
+rclick 450 $ROW1
+click 530 $((ROW1+M_HIDE)) 4; shot song-hidden-human-race
+check "hidden song is in the hidden list" 'grep -q "Human Race" "$(HIDDEN)"'
+check "hidden song file is still on disk" '[ -f "$H/01 Human Race.mp3" ]'
+
+# delete the song that is first now (Painkiller): confirmation, then Delete
+rclick 450 $ROW1
+click 530 $((ROW1+M_DELETE)) 3; shot delete-song-confirmation
+click ${DELETE_BTN_X:-560} ${DELETE_BTN_Y:-400} 4; shot after-delete-song
+check "deleted song file is gone from disk" '[ ! -e "$H/02 - Painkiller (Official Video).mp3" ]'
+check "other songs are still on disk" '[ -f "$H/12 The Real You.mp3" ] && [ -f "$H/16. Let You Down (Live).mp3" ]'
 key Escape
-rclick 450 400;        shot track-right-click-menu-b
-key Escape
-key alt+Left
+
+# hide the whole album from the Albums grid
+click 60 $ALBUMS 4
 rclick $TILE1 320;     shot album-right-click-menu
+click 380 ${ALBUM_HIDE_Y:-420} 5; shot album-human-hidden
+check "hidden album is in the hidden list" 'grep -q "\"Human\"" "$(HIDDEN)" || grep -q "Human\"" "$(HIDDEN)"'
+cp "$(HIDDEN)" $OUT/hidden-music-after-hiding.json 2>/dev/null
+
+# Settings > Hidden music: switch the first entry off, then remove the other one
+key ctrl+shift+comma 4; shot settings-hidden-music-list
+click ${HM_SWITCH_X:-228} ${HM_ROW1_Y:-343} 4; shot settings-hidden-first-switched-off
+cp "$(HIDDEN)" $OUT/hidden-music-after-switch.json 2>/dev/null
+check "switching an entry off keeps it in the list, not hidden" 'grep -q "\"hidden\": *false" "$(HIDDEN)"'
+click ${HM_REMOVE_X:-590} ${HM_ROW2_Y:-380} 4; shot settings-hidden-second-removed
+cp "$(HIDDEN)" $OUT/hidden-music-after-remove.json 2>/dev/null
+check "removing an entry leaves one entry" '[ "$(grep -c "\"title\"" "$(HIDDEN)")" = "1" ]'
 key Escape
-key ctrl+shift+comma 4; shot settings-top
-xdotool mousemove 450 400; for i in 1 2 3 4 5 6 7 8 9 10; do xdotool click 5; done; sleep 2
-shot settings-scrolled-hidden-music
-key Escape
+click 60 $ALBUMS 5;    shot albums-after-unhiding
+
+# "Elisa: Import to Music", run the way the file manager runs it, while Elisa is open
+DL=/tmp/downloads; rm -rf $DL; mkdir -p "$DL/zip/Imported LP"
+for n in 1 2; do ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=$((500+n*40)):duration=5" -metadata title="Zip Song $n" -metadata artist="Zip Band" -metadata album_artist="Zip Band" -metadata album="Imported LP" -metadata track=$n "$DL/zip/Imported LP/0$n Zip Song $n.mp3"; done
+(cd $DL/zip && python3 -m zipfile -c "../Imported LP.zip" "Imported LP")
+ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=700:duration=5" -metadata title="Loose Import" -metadata artist="Zip Band" -metadata album="Loose Singles" -metadata track=1 "$DL/Loose Import.mp3"
+ELISA_IMPORT_QUIET=1 $MENUDIR/elisa-import-to-music.sh "$DL/Imported LP.zip" "$DL/Loose Import.mp3" > $OUT/import-output.txt 2>&1
+cat $OUT/import-output.txt
+check "import: archive unpacked into the Music folder" '[ -f "$HOME/Music/Imported LP/01 Zip Song 1.mp3" ] && [ -f "$HOME/Music/Imported LP/02 Zip Song 2.mp3" ]'
+check "import: single file moved into the Music folder" '[ -f "$HOME/Music/Loose Import.mp3" ] && [ ! -e "$DL/Loose Import.mp3" ]'
+check "import: archive no longer in the source folder" '[ ! -e "$DL/Imported LP.zip" ]'
+sleep 12
+click 60 $ARTISTS 3; click 60 $ALBUMS 5; shot albums-after-import-without-restart
 stop_elisa
 
 ########## RUN 4: update check at startup (pretends to be build 1) ##########
+BEFORE=$(flatpak info --user org.kde.elisa 2>/dev/null | grep -i commit | head -n 1)
 start_elisa run4 ELISA_FORK_BUILD_NUMBER_OVERRIDE=1
 shot update-banner-at-startup
-click 880 154 2;       shot menu-with-check-for-updates
-key Escape
+if [ -z "$APPIMAGE_PATH" ]; then
+  # Flatpak: let Elisa install the published build by itself
+  click ${UPDATE_BTN_X:-790} 207 60; shot update-after-update-now
+  AFTER=$(flatpak info --user org.kde.elisa 2>/dev/null | grep -i commit | head -n 1)
+  echo "before: $BEFORE / after: $AFTER" >> $OUT/checks.txt
+  check "updater installed the published build (Flatpak)" '[ -n "$AFTER" ] && [ "$BEFORE" != "$AFTER" ]' WARN
+else
+  click 880 204 2;       shot menu-with-check-for-updates
+  key Escape
+fi
 stop_elisa
 find $HOME -name hidden-music.json -exec cp {} $OUT/hidden-music.json \; 2>/dev/null
 

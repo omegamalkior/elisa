@@ -56,6 +56,7 @@
 #include "blacklistmanager.h"
 #include "updatechecker.h"
 #include "tracknamecleaner.h"
+#include "importmenuinstaller.h"
 #include "filescanner.h"
 #include "databaseinterface.h"
 #include <QTimer>
@@ -103,6 +104,8 @@ public:
     std::unique_ptr<UpdateChecker> mUpdateChecker = std::make_unique<UpdateChecker>();
 
     bool mShowFileNames = false;
+
+    bool mImportMenuEnabled = true;
 
     std::unique_ptr<ManageMediaPlayerControl> mPlayerControl;
 
@@ -502,6 +505,14 @@ void ElisaApplication::initializeModels()
 
     d->mShowFileNames = Elisa::ElisaConfiguration::self()->showFileNames();
 
+#if defined Q_OS_LINUX && !defined Q_OS_ANDROID
+    // keep the file manager's "Elisa: Import to Music" action in place
+    d->mImportMenuEnabled = Elisa::ElisaConfiguration::self()->installImportMenu();
+    if (d->mImportMenuEnabled) {
+        ImportMenuInstaller::install();
+    }
+#endif
+
     // look for a newer build shortly after every start
     if (Elisa::ElisaConfiguration::self()->checkForUpdatesAtStartup()) {
         QTimer::singleShot(2500, d->mUpdateChecker.get(), [this] {
@@ -728,9 +739,33 @@ void ElisaApplication::setShowFileNames(bool value)
     Elisa::ElisaConfiguration::self()->save();
 }
 
-QString ElisaApplication::adjustedTitle(const QString &title) const
+bool ElisaApplication::importMenuEnabled() const
 {
-    return TrackNameCleaner::adjustedTitle(title);
+    return d->mImportMenuEnabled;
+}
+
+void ElisaApplication::setImportMenuEnabled(bool value)
+{
+    if (d->mImportMenuEnabled == value) {
+        return;
+    }
+
+    d->mImportMenuEnabled = value;
+    Q_EMIT importMenuEnabledChanged();
+
+    if (value) {
+        ImportMenuInstaller::install();
+    } else {
+        ImportMenuInstaller::uninstall();
+    }
+
+    Elisa::ElisaConfiguration::setInstallImportMenu(value);
+    Elisa::ElisaConfiguration::self()->save();
+}
+
+QString ElisaApplication::adjustedTitle(const QString &title, int trackNumber) const
+{
+    return TrackNameCleaner::adjustedTitle(title, trackNumber);
 }
 
 QString ElisaApplication::fileNameOf(const QUrl &file) const

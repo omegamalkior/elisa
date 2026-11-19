@@ -21,6 +21,7 @@ set(elisaLib_SOURCES
     updatechecker.cpp
     updatereleaseinfo.cpp
     tracknamecleaner.cpp
+    importmenuinstaller.cpp
     trackslistener.cpp
     elisaapplication.cpp
     modeldataloader.cpp
@@ -240,6 +241,12 @@ add_library(elisaLib ${elisaLib_SOURCES})
 # number of the published build, used by the built-in update check (0: not a published build)
 set(ELISA_FORK_BUILD_NUMBER "0" CACHE STRING "Build number of this Elisa variant")
 target_compile_definitions(elisaLib PRIVATE ELISA_FORK_BUILD_NUMBER=${ELISA_FORK_BUILD_NUMBER})
+
+# script behind the file manager's "Elisa: Import to Music" right-click action
+qt_add_resources(elisaLib "elisa_import_menu"
+    PREFIX "/elisa"
+    FILES elisa-import-to-music.sh
+)
 target_link_libraries(elisaLib
     LINK_PUBLIC
     Qt::Multimedia Qt::Qml KF6::ConfigGui

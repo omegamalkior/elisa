@@ -128,6 +128,16 @@ ColumnLayout {
         QQC2.CheckBox {
             Layout.fillWidth: true
 
+            // applies right away: it adds or removes the action of the file manager
+            text: KI18n.i18nc("@option:check", "Add “Elisa: Import to Music” to the file manager's right-click menu")
+
+            checked: ElisaApplication.importMenuEnabled
+            onToggled: ElisaApplication.importMenuEnabled = checked
+        }
+
+        QQC2.CheckBox {
+            Layout.fillWidth: true
+
             text: KI18n.i18nc("@option:check", "Scan for new music on startup")
 
             checked: ElisaConfigurationDialog.scanAtStartup

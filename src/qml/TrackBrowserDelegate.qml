@@ -46,7 +46,7 @@ ItemDelegate {
             const fileName = ElisaApplication.fileNameOf(trackUrl)
             return fileName !== "" ? fileName : title
         }
-        return ElisaApplication.adjustedTitle(title)
+        return ElisaApplication.adjustedTitle(title, trackNumber)
     }
     // number in front of the name on album pages: the place in the album instead of
     // the raw tag number (which can be 2, 12, 16...), and nothing in front of file names

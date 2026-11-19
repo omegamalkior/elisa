@@ -8,6 +8,7 @@
     "finish-args": [
         "--device=dri",
         "--filesystem=xdg-music",
+        "--filesystem=xdg-data/kio/servicemenus:create",
         "--own-name=org.mpris.MediaPlayer2.elisa",
         "--share=ipc",
         "--share=network",

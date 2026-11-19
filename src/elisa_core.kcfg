@@ -49,6 +49,12 @@
       true
     </default>
   </entry>
+  <entry key="InstallImportMenu" type="Bool" >
+    <label>Add "Elisa: Import to Music" to the file manager's right-click menu</label>
+    <default>
+      true
+    </default>
+  </entry>
   <entry key="ShowFileNames" type="Bool" >
     <label>Show file names instead of adjusted song names</label>
     <default>

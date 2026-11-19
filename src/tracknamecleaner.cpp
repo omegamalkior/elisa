@@ -8,7 +8,7 @@
 
 using namespace Qt::Literals::StringLiterals;
 
-QString TrackNameCleaner::adjustedTitle(const QString &title)
+QString TrackNameCleaner::adjustedTitle(const QString &title, int trackNumber)
 {
     static const QRegularExpression extension{u"\\.(mp3|flac|m4a|mp4|aac|ogg|oga|opus|wav|wma|aiff?|ape|mka|webm)$"_s, QRegularExpression::CaseInsensitiveOption};
     // a track number in front of the name:
@@ -47,6 +47,13 @@ QString TrackNameCleaner::adjustedTitle(const QString &title)
         const auto rest = result.mid(numberMatch.capturedEnd());
         if (!rest.isEmpty() && !rest.at(0).isDigit() && !rest.at(0).isSpace()) {
             result = rest;
+        }
+    } else if (trackNumber > 0) {
+        // "12 The Real You" for the song tagged as track 12
+        const QRegularExpression ownNumber{u"^\\s*0*%1\\s+(?=\\D)"_s.arg(trackNumber)};
+        const auto ownMatch = ownNumber.match(result);
+        if (ownMatch.hasMatch() && result.size() > ownMatch.capturedEnd()) {
+            result = result.mid(ownMatch.capturedEnd());
         }
     }
 
