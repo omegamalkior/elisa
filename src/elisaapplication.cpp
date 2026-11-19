@@ -52,6 +52,7 @@
 #include <QFileSystemWatcher>
 #include <QMimeDatabase>
 #include <QMimeType>
+#include "sleeptimer.h"
 #include <QPalette>
 #include <QDebug>
 #include <QEvent>
@@ -88,6 +89,8 @@ public:
     std::unique_ptr<AudioWrapper> mAudioWrapper;
 
     std::unique_ptr<ManageAudioPlayer> mAudioControl;
+
+    std::unique_ptr<SleepTimer> mSleepTimer = std::make_unique<SleepTimer>();
 
     std::unique_ptr<ManageMediaPlayerControl> mPlayerControl;
 
@@ -483,6 +486,13 @@ void ElisaApplication::initializePlayer()
 {
     d->mAudioWrapper = std::make_unique<AudioWrapper>();
     Q_EMIT audioPlayerChanged();
+
+    // sleep timer: pause when the time is up or at the end of the current track
+    connect(d->mSleepTimer.get(), &SleepTimer::timeout, d->mAudioWrapper.get(), &AudioWrapper::pause);
+    connect(d->mAudioWrapper.get(), &AudioWrapper::positionChanged, d->mSleepTimer.get(), [this](qint64 position) {
+        d->mSleepTimer->trackPositionChanged(position, d->mAudioWrapper->duration());
+    });
+    connect(d->mMediaPlayListProxyModel.get(), &MediaPlayListProxyModel::currentTrackChanged, d->mSleepTimer.get(), &SleepTimer::trackChanged);
     d->mAudioControl = std::make_unique<ManageAudioPlayer>();
     Q_EMIT audioControlChanged();
     d->mPlayerControl = std::make_unique<ManageMediaPlayerControl>();
@@ -644,6 +654,11 @@ bool ElisaApplication::useFavoriteStyleRatings() const
 bool ElisaApplication::useAlbumArtistInArtistsView() const
 {
     return d->mUseAlbumArtistInArtistsView;
+}
+
+SleepTimer *ElisaApplication::sleepTimer() const
+{
+    return d->mSleepTimer.get();
 }
 
 ElisaUtils::PlayListEntryType ElisaApplication::embeddedView() const

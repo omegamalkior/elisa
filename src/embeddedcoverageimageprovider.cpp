@@ -10,11 +10,39 @@
 #include <KFileMetaData/ExtractorCollection>
 #include <KFileMetaData/SimpleExtractionResult>
 
+#include "viewsLogging.h"
+
+#include <QCache>
+#include <QFileInfo>
 #include <QImage>
 #include <QMimeDatabase>
+#include <QMutex>
+#include <QMutexLocker>
 
 namespace
 {
+// Covers already read from audio files and scaled down for display. Without it,
+// every time an album scrolls back into view its audio file is opened again and
+// the full size picture is decoded again.
+struct CoverCache {
+    QMutex mutex;
+    QCache<QString, QImage> images{48 * 1024}; // cost is in KiB: at most 48 MiB
+};
+
+CoverCache &coverCache()
+{
+    static CoverCache cache;
+    return cache;
+}
+
+// a changed file (other date or size) gets another key, so its new cover is read
+QString coverCacheKey(const QString &fileName, QSize size)
+{
+    const QFileInfo fileInfo{fileName};
+    return fileName + QLatin1Char('|') + QString::number(size.width()) + QLatin1Char('x') + QString::number(size.height()) + QLatin1Char('|')
+        + QString::number(fileInfo.lastModified().toMSecsSinceEpoch()) + QLatin1Char('|') + QString::number(fileInfo.size());
+}
+
 class AsyncImageResponse : public QQuickImageResponse, public QRunnable
 {
     Q_OBJECT
@@ -41,6 +69,19 @@ public:
 
     void run() override
     {
+        const auto cacheKey = coverCacheKey(mId, mRequestedSize);
+        {
+            QMutexLocker locker(&coverCache().mutex);
+            if (const auto *cachedCover = coverCache().images.object(cacheKey)) {
+                mCoverImage = *cachedCover;
+                qCDebug(orgKdeElisaViews()) << "embedded cover cache hit" << mId;
+                locker.unlock();
+                Q_EMIT finished();
+                return;
+            }
+        }
+        qCDebug(orgKdeElisaViews()) << "embedded cover cache miss" << mId;
+
         QMimeDatabase mimeDatabase;
         const auto fileMimeType = mimeDatabase.mimeTypeForFile(mId).name();
         KFileMetaData::ExtractorCollection ec;
@@ -76,6 +117,13 @@ public:
         auto newCoverImage = mCoverImage.scaled(mRequestedSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         if (!newCoverImage.isNull()) {
           mCoverImage = std::move(newCoverImage);
+        }
+
+        // keep display sized covers only (a cover that could not be scaled stays out)
+        const auto cost = int(mCoverImage.sizeInBytes() / 1024) + 1;
+        if (cost <= 4 * 1024) {
+            QMutexLocker locker(&coverCache().mutex);
+            coverCache().images.insert(cacheKey, new QImage(mCoverImage), cost);
         }
 
         Q_EMIT finished();

@@ -383,6 +383,7 @@ void ViewManager::applyFilter(ViewParameters &nextViewParameters,
     case ElisaUtils::NoFilter:
     case ElisaUtils::FilterByRecentlyPlayed:
     case ElisaUtils::FilterByFrequentlyPlayed:
+    case ElisaUtils::FilterByRecentlyAdded:
     case ElisaUtils::FilterByPath:
     case ElisaUtils::FilterById:
     case ElisaUtils::UnknownFilter:
@@ -473,6 +474,7 @@ bool ViewManager::viewHasDefaultSortRole(const ElisaUtils::FilterType filterType
     {
     case ElisaUtils::FilterByRecentlyPlayed:
     case ElisaUtils::FilterByFrequentlyPlayed:
+    case ElisaUtils::FilterByRecentlyAdded:
     case ElisaUtils::FilterById: // Tracks in album view
         return true;
     default:

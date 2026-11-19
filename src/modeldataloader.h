@@ -114,6 +114,8 @@ public Q_SLOTS:
 
     void loadRecentlyPlayedData(ElisaUtils::PlayListEntryType dataType);
 
+    void loadRecentlyAddedData(ElisaUtils::PlayListEntryType dataType);
+
     void loadFrequentlyPlayedData(ElisaUtils::PlayListEntryType dataType);
 
     void updateFileMetaData(const DataTypes::TrackDataType &trackDataType, const QUrl &url);

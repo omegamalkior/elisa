@@ -63,6 +63,8 @@ public:
 
     DataTypes::ListTrackDataType recentlyPlayedTracksData(int count);
 
+    DataTypes::ListTrackDataType recentlyAddedTracksData(int count);
+
     DataTypes::ListTrackDataType frequentlyPlayedTracksData(int count);
 
     DataTypes::ListAlbumDataType allAlbumsData();
@@ -337,6 +339,8 @@ private:
     DataTypes::ListRadioDataType internalAllRadiosPartialData();
 
     DataTypes::ListTrackDataType internalRecentlyPlayedTracksData(int count);
+
+    DataTypes::ListTrackDataType internalRecentlyAddedTracksData(int count);
 
     DataTypes::ListTrackDataType internalFrequentlyPlayedTracksData(int count);
 

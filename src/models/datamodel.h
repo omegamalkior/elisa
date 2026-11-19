@@ -102,6 +102,8 @@ Q_SIGNALS:
 
     void needRecentlyPlayedData(ElisaUtils::PlayListEntryType dataType);
 
+    void needRecentlyAddedData(ElisaUtils::PlayListEntryType dataType);
+
     void needFrequentlyPlayedData(ElisaUtils::PlayListEntryType dataType);
 
     void isBusyChanged();

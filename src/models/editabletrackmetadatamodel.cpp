@@ -103,6 +103,7 @@ QVariant EditableTrackMetadataModel::data(const QModelIndex &index, int role) co
         case DataTypes::MultipleImageUrlsRole:
         case DataTypes::LyricsLocationRole:
         case DataTypes::TracksCountRole:
+        case DataTypes::ImportDateRole:
             break;
         }
         break;
@@ -161,6 +162,7 @@ QVariant EditableTrackMetadataModel::data(const QModelIndex &index, int role) co
             case DataTypes::MultipleImageUrlsRole:
             case DataTypes::LyricsLocationRole:
             case DataTypes::TracksCountRole:
+            case DataTypes::ImportDateRole:
                 result = false;
                 break;
             }

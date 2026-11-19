@@ -27,6 +27,7 @@ class MediaPlayList;
 class MediaPlayListProxyModel;
 class AudioWrapper;
 class ManageAudioPlayer;
+class SleepTimer;
 class ManageMediaPlayerControl;
 class ManageHeaderBar;
 class ElisaApplicationPrivate;
@@ -67,6 +68,10 @@ class ELISALIB_EXPORT ElisaApplication : public QObject
     Q_PROPERTY(ManageAudioPlayer *audioControl
                READ audioControl
                NOTIFY audioControlChanged)
+
+    Q_PROPERTY(SleepTimer *sleepTimer
+               READ sleepTimer
+               CONSTANT)
 
     Q_PROPERTY(ManageMediaPlayerControl *playerControl
                READ playerControl
@@ -137,6 +142,8 @@ public:
     [[nodiscard]] AudioWrapper *audioPlayer() const;
 
     [[nodiscard]] ManageAudioPlayer *audioControl() const;
+
+    [[nodiscard]] SleepTimer *sleepTimer() const;
 
     [[nodiscard]] ManageMediaPlayerControl *playerControl() const;
 

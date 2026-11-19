@@ -16,6 +16,7 @@ set(elisaLib_SOURCES
     managemediaplayercontrol.cpp
     manageheaderbar.cpp
     manageaudioplayer.cpp
+    sleeptimer.cpp
     trackslistener.cpp
     elisaapplication.cpp
     modeldataloader.cpp

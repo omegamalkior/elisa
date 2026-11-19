@@ -77,6 +77,8 @@ jobs:
             - Album Artist (TPE2) support: an optional Settings checkbox to group the Artists view by album artist. Off by default, so Elisa shows every artist as usual.
             - A Dark Mode toggle in the ☰ menu.
             - A more modern look: rounded covers and cards, artist initial badges, pill-shaped sidebar.
+            - A Recently Added view, a Sleep Timer (☰ menu) and volume shortcuts (Ctrl+Up / Ctrl+Down).
+            - Faster: artist pages open instantly on big libraries, and album covers are cached while browsing.
 
             Install on Steam Deck / Linux: download elisa-album-artist.flatpak and double-click it (or run
             flatpak install elisa-album-artist.flatpak in Konsole).

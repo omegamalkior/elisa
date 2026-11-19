@@ -78,6 +78,7 @@ public:
         MultipleImageUrlsRole,
         LyricsLocationRole,
         TracksCountRole,
+        ImportDateRole,
     };
 
     Q_ENUM(ColumnsRoles)

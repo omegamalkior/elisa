@@ -236,6 +236,7 @@ QVariant TrackMetadataModel::data(const QModelIndex &index, int role) const
         case DataTypes::MultipleImageUrlsRole:
         case DataTypes::LyricsLocationRole:
         case DataTypes::TracksCountRole:
+        case DataTypes::ImportDateRole:
             break;
         }
         break;
@@ -612,6 +613,7 @@ QString TrackMetadataModel::nameFromRole(DataTypes::ColumnsRoles role)
     case DataTypes::MultipleImageUrlsRole:
     case DataTypes::LyricsLocationRole:
     case DataTypes::TracksCountRole:
+    case DataTypes::ImportDateRole:
         break;
     }
     return result;
