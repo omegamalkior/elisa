@@ -183,14 +183,16 @@ click 880 154 2; click 646 301 4; shot dark-mode-back-on
 # switch the album artist option off in Settings, press OK
 click 60 $ARTISTS
 key ctrl+shift+comma 4
-hover 230 221;         shot settings-before-untick
-click 230 221 1;       shot settings-unticked
+hover 230 294;         shot settings-before-untick
+click 230 294 1;       shot settings-unticked
 click 423 555 6;       shot option-off-all-artists
+check "Settings: unticking the album artist option is saved" 'grep -q "UseAlbumArtistInArtistsView=false" $CONF/elisarc'
 
 # Cancel should not change anything
 key ctrl+shift+comma 4
-click 230 221 1
+click 230 294 1
 click 511 555 4;       shot settings-cancel-keeps-option-off
+check "Settings: Cancel changes nothing" 'grep -q "UseAlbumArtistInArtistsView=false" $CONF/elisarc'
 
 # narrow and wide windows
 xdotool windowsize --sync $WID 560 648; sleep 4; xdotool getwindowgeometry $WID; shot narrow-window
@@ -249,7 +251,7 @@ check "hidden song file is still on disk" '[ -f "$H/01 Human Race.mp3" ]'
 # delete the song that is first now (Painkiller): confirmation, then Delete
 rclick 450 $ROW1
 click 530 $((ROW1+M_DELETE)) 3; shot delete-song-confirmation
-click ${DELETE_BTN_X:-560} ${DELETE_BTN_Y:-400} 4; shot after-delete-song
+click ${DELETE_BTN_X:-742} ${DELETE_BTN_Y:-344} 4; shot after-delete-song
 check "deleted song file is gone from disk" '[ ! -e "$H/02 - Painkiller (Official Video).mp3" ]'
 check "other songs are still on disk" '[ -f "$H/12 The Real You.mp3" ] && [ -f "$H/16. Let You Down (Live).mp3" ]'
 key Escape
@@ -263,12 +265,13 @@ cp "$(HIDDEN)" $OUT/hidden-music-after-hiding.json 2>/dev/null
 
 # Settings > Hidden music: switch the first entry off, then remove the other one
 key ctrl+shift+comma 4; shot settings-hidden-music-list
-click ${HM_SWITCH_X:-228} ${HM_ROW1_Y:-343} 4; shot settings-hidden-first-switched-off
+click ${HM_SWITCH_X:-215} ${HM_ROW1_Y:-397} 4; shot settings-hidden-first-switched-off
 cp "$(HIDDEN)" $OUT/hidden-music-after-switch.json 2>/dev/null
 check "switching an entry off keeps it in the list, not hidden" 'grep -q "\"hidden\": *false" "$(HIDDEN)"'
-click ${HM_REMOVE_X:-590} ${HM_ROW2_Y:-380} 4; shot settings-hidden-second-removed
+click ${HM_REMOVE_X:-577} ${HM_ROW2_Y:-432} 4; shot settings-hidden-second-removed
 cp "$(HIDDEN)" $OUT/hidden-music-after-remove.json 2>/dev/null
 check "removing an entry leaves one entry" '[ "$(grep -c "\"title\"" "$(HIDDEN)")" = "1" ]'
+check "the removed entry was the album, the song entry stays switched off" 'grep -q "Human Race" "$(HIDDEN)" && ! grep -q "\"hidden\": *true" "$(HIDDEN)"'
 key Escape
 click 60 $ALBUMS 5;    shot albums-after-unhiding
 
@@ -279,17 +282,28 @@ for n in 1 2; do ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=$((500+n*
 ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=700:duration=5" -metadata title="Loose Import" -metadata artist="Zip Band" -metadata album="Loose Singles" -metadata track=1 "$DL/Loose Import.mp3"
 ELISA_IMPORT_QUIET=1 $MENUDIR/elisa-import-to-music.sh "$DL/Imported LP.zip" "$DL/Loose Import.mp3" > $OUT/import-output.txt 2>&1
 cat $OUT/import-output.txt
-check "import: archive unpacked into the Music folder" '[ -f "$HOME/Music/Imported LP/01 Zip Song 1.mp3" ] && [ -f "$HOME/Music/Imported LP/02 Zip Song 2.mp3" ]'
-check "import: single file moved into the Music folder" '[ -f "$HOME/Music/Loose Import.mp3" ] && [ ! -e "$DL/Loose Import.mp3" ]'
-check "import: archive no longer in the source folder" '[ ! -e "$DL/Imported LP.zip" ]'
-sleep 12
+check "import: files left the source folder" '[ ! -e "$DL/Imported LP.zip" ] && [ ! -e "$DL/Loose Import.mp3" ]'
+sleep 15
+find $HOME/Music | sort > $OUT/music-folder-after-import.txt
+check "import + auto-sort: album from the archive is in Artist/Album" '[ -f "$HOME/Music/Zip Band/Imported LP/01 Zip Song 1.mp3" ] && [ -f "$HOME/Music/Zip Band/Imported LP/02 Zip Song 2.mp3" ]'
+check "import + auto-sort: single song is in Artist/Album" '[ -f "$HOME/Music/Zip Band/Loose Singles/Loose Import.mp3" ]'
+check "import + auto-sort: nothing left behind in the Music folder" '[ ! -e "$HOME/Music/Imported LP" ] && [ ! -e "$HOME/Music/Loose Import.mp3" ] && [ ! -e "$HOME/Music/.elisa-import-queue" ]'
+check "auto-sort left the existing library alone" '[ -f "$HOME/Music/Daft Punk/Random Access Memories/01 Get Lucky.mp3" ] && [ -f "$H/12 The Real You.mp3" ]'
 click 60 $ARTISTS 3; click 60 $ALBUMS 5; shot albums-after-import-without-restart
 stop_elisa
+
+# import while Elisa is closed: sorted at the next start
+mkdir -p "$DL/Closed EP"
+ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=800:duration=5" -metadata title="Later" -metadata artist="Night Owl" -metadata album="Closed EP" -metadata track=1 "$DL/Closed EP/01 Later.mp3"
+echo cover > "$DL/Closed EP/cover.jpg"
+ELISA_IMPORT_QUIET=1 $MENUDIR/elisa-import-to-music.sh "$DL/Closed EP" >> $OUT/import-output.txt 2>&1
+check "import of a folder while Elisa is closed" '[ -f "$HOME/Music/Closed EP/01 Later.mp3" ] && [ -f "$HOME/Music/.elisa-import-queue" ]'
 
 ########## RUN 4: update check at startup (pretends to be build 1) ##########
 BEFORE=$(flatpak info --user org.kde.elisa 2>/dev/null | grep -i commit | head -n 1)
 start_elisa run4 ELISA_FORK_BUILD_NUMBER_OVERRIDE=1
 shot update-banner-at-startup
+check "folder imported while closed is sorted at startup, cover included" '[ -f "$HOME/Music/Night Owl/Closed EP/01 Later.mp3" ] && [ -f "$HOME/Music/Night Owl/Closed EP/cover.jpg" ] && [ ! -e "$HOME/Music/Closed EP" ]'
 if [ -z "$APPIMAGE_PATH" ]; then
   # Flatpak: let Elisa install the published build by itself
   click ${UPDATE_BTN_X:-790} 207 60; shot update-after-update-now

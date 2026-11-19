@@ -244,6 +244,41 @@ Kirigami.ApplicationWindow {
         entryContextMenu.openFor(info)
     }
 
+    function askToSortMusic() {
+        sortMusicDialog.open()
+    }
+
+    Kirigami.PromptDialog {
+        id: sortMusicDialog
+
+        title: KI18n.i18nc("@title:window", "Sort the Music Folder?")
+        subtitle: KI18n.i18nc("@info", "All songs in your music folders will be moved into folders named Artist/Album, using their tags. Songs without tags stay where they are. Playlists saved as files may no longer find moved songs.")
+        standardButtons: Kirigami.Dialog.Cancel
+
+        customFooterActions: [
+            Kirigami.Action {
+                text: KI18n.i18nc("@action:button", "Sort")
+                icon.name: "folder-music"
+                onTriggered: {
+                    sortMusicDialog.close()
+                    ElisaApplication.sortMusicFolders()
+                }
+            }
+        ]
+    }
+
+    Connections {
+        target: ElisaApplication
+
+        function onMusicSorted(moved, failed) {
+            if (failed > 0) {
+                mainWindow.showPassiveNotification(KI18n.i18nc("@info:status", "%1 songs sorted into Artist/Album folders, %2 could not be moved.", moved, failed), 7000)
+            } else if (moved > 0) {
+                mainWindow.showPassiveNotification(KI18n.i18ncp("@info:status", "%1 song sorted into its Artist/Album folder.", "%1 songs sorted into Artist/Album folders.", moved), 7000)
+            }
+        }
+    }
+
     EntryContextMenu {
         id: entryContextMenu
         onNotify: message => mainWindow.showPassiveNotification(message, 7000)

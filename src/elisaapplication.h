@@ -88,6 +88,11 @@ class ELISALIB_EXPORT ElisaApplication : public QObject
                WRITE setImportMenuEnabled
                NOTIFY importMenuEnabledChanged)
 
+    Q_PROPERTY(bool sortImportedMusic
+               READ sortImportedMusic
+               WRITE setSortImportedMusic
+               NOTIFY sortImportedMusicChanged)
+
     Q_PROPERTY(bool showFileNames
                READ showFileNames
                WRITE setShowFileNames
@@ -177,6 +182,13 @@ public:
     [[nodiscard]] bool importMenuEnabled() const;
     void setImportMenuEnabled(bool value);
 
+    /// Music brought in with "Elisa: Import to Music" is sorted into Artist/Album folders
+    [[nodiscard]] bool sortImportedMusic() const;
+    void setSortImportedMusic(bool value);
+
+    /// Sorts every song of the music folders into Artist/Album folders
+    Q_INVOKABLE void sortMusicFolders();
+
     /// A song title without track number, file extension and download leftovers
     Q_INVOKABLE QString adjustedTitle(const QString &title, int trackNumber = 0) const;
 
@@ -249,6 +261,10 @@ Q_SIGNALS:
 
     void importMenuEnabledChanged();
 
+    void sortImportedMusicChanged();
+
+    void musicSorted(int moved, int failed);
+
     void commitDataRequest();
 
     void embeddedViewChanged();
@@ -315,6 +331,10 @@ protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
+
+    void processImportQueues();
+
+    void sortInBackground(const QList<std::pair<QString, QStringList>> &work);
 
     [[nodiscard]] QString colorSchemeNameFor(bool dark) const;
 

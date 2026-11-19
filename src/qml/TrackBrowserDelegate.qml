@@ -83,7 +83,7 @@ ItemDelegate {
             isAlbum: false,
             canHide: mediaTrack.dataType === ElisaUtils.Track && mediaTrack.trackUrl.toString().substring(0, 7) === 'file://',
             fileUrl: mediaTrack.trackUrl,
-            title: mediaTrack.title,
+            title: ElisaApplication.adjustedTitle(mediaTrack.title, mediaTrack.trackNumber),
             artist: mediaTrack.artist
         })
     }

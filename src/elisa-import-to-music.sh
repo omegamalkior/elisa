@@ -15,6 +15,9 @@ mkdir -p "$dest" || exit 1
 moved=0
 failed=0
 problems=""
+# what was brought in, one path per line: Elisa sorts these into Artist/Album folders
+queue="$dest/.elisa-import-queue"
+note() { printf '%s\n' "$1" >> "$queue.$$"; }
 
 # a path that does not exist yet: "Name", "Name (2)", "Name (3)"...
 unique() {
@@ -65,9 +68,11 @@ import_archive() {   # $1 = archive, $2 = kind, $3 = name without extension
     if [ "$count" -eq 0 ]; then rm -rf "$tmp"; return 1; fi
     if [ "$count" -eq 1 ] && [ -d "$tmp/$only" ]; then
         # the archive holds one folder: keep that folder, not a folder in a folder
-        mv -- "$tmp/$only" "$(unique "$dest/$only")" && rmdir "$tmp"
+        target=$(unique "$dest/$only")
+        mv -- "$tmp/$only" "$target" && rmdir "$tmp" && note "$target"
     else
-        mv -- "$tmp" "$(unique "$dest/$3")"
+        target=$(unique "$dest/$3")
+        mv -- "$tmp" "$target" && note "$target"
     fi
 }
 
@@ -101,13 +106,19 @@ $name"
         fi
     elif [ "$inside" -eq 1 ]; then
         continue
-    elif mv -- "$item" "$(unique "$dest/$name")"; then
+    elif target=$(unique "$dest/$name") && mv -- "$item" "$target"; then
+        note "$target"
         moved=$((moved + 1))
     else
         failed=$((failed + 1)); problems="$problems
 $name"
     fi
 done
+
+# hand the list over in one go, when everything is in place
+if [ -f "$queue.$$" ]; then
+    cat "$queue.$$" >> "$queue" && rm -f "$queue.$$"
+fi
 
 if [ "$failed" -gt 0 ]; then
     message="$moved imported into $dest, $failed could not be imported:$problems"

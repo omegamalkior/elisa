@@ -72,15 +72,6 @@ Menu {
         }
     }
 
-    Action {
-        text: KI18n.i18nc("@action:inmenu", "Check for Updates")
-        icon.name: "update-none"
-        onTriggered: {
-            applicationMenu.close()
-            ElisaApplication.updateChecker.check(true)
-        }
-    }
-
     Menu {
         id: sleepTimerMenu
 
@@ -154,6 +145,24 @@ Menu {
                     applicationMenu.close()
                 }
             }
+        }
+    }
+
+    Action {
+        text: KI18n.i18nc("@action:inmenu", "Check for Updates")
+        icon.name: "update-none"
+        onTriggered: {
+            applicationMenu.close()
+            ElisaApplication.updateChecker.check(true)
+        }
+    }
+
+    Action {
+        text: KI18n.i18nc("@action:inmenu", "Sort Music into Artist/Album Folders…")
+        icon.name: "folder-music"
+        onTriggered: {
+            applicationMenu.close()
+            mainWindow.askToSortMusic()
         }
     }
 

@@ -55,6 +55,12 @@
       true
     </default>
   </entry>
+  <entry key="SortImportedMusic" type="Bool" >
+    <label>Sort music brought in with "Elisa: Import to Music" into Artist/Album folders</label>
+    <default>
+      true
+    </default>
+  </entry>
   <entry key="ShowFileNames" type="Bool" >
     <label>Show file names instead of adjusted song names</label>
     <default>

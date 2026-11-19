@@ -22,6 +22,7 @@ set(elisaLib_SOURCES
     updatereleaseinfo.cpp
     tracknamecleaner.cpp
     importmenuinstaller.cpp
+    musicorganizer.cpp
     trackslistener.cpp
     elisaapplication.cpp
     modeldataloader.cpp

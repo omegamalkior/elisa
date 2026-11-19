@@ -57,6 +57,10 @@
 #include "updatechecker.h"
 #include "tracknamecleaner.h"
 #include "importmenuinstaller.h"
+#include "musicorganizer.h"
+#include <QFileSystemWatcher>
+#include <QFutureWatcher>
+#include <QtConcurrentRun>
 #include "filescanner.h"
 #include "databaseinterface.h"
 #include <QTimer>
@@ -106,6 +110,12 @@ public:
     bool mShowFileNames = false;
 
     bool mImportMenuEnabled = true;
+
+    bool mSortImportedMusic = true;
+
+    QFileSystemWatcher mImportWatcher;
+
+    QTimer mImportTimer;
 
     std::unique_ptr<ManageMediaPlayerControl> mPlayerControl;
 
@@ -513,6 +523,23 @@ void ElisaApplication::initializeModels()
     }
 #endif
 
+    // "Elisa: Import to Music" leaves a note about what it brought in: sort that into
+    // Artist/Album folders, now and whenever new music arrives while Elisa is open
+    d->mSortImportedMusic = Elisa::ElisaConfiguration::self()->sortImportedMusic();
+    d->mImportTimer.setSingleShot(true);
+    d->mImportTimer.setInterval(1500);
+    connect(&d->mImportTimer, &QTimer::timeout, this, &ElisaApplication::processImportQueues);
+    connect(&d->mImportWatcher, &QFileSystemWatcher::directoryChanged, &d->mImportTimer, qOverload<>(&QTimer::start));
+    {
+        const auto roots = Elisa::ElisaConfiguration::self()->rootPath();
+        for (const auto &root : roots) {
+            if (QFileInfo{root}.isDir()) {
+                d->mImportWatcher.addPath(root);
+            }
+        }
+    }
+    d->mImportTimer.start();
+
     // look for a newer build shortly after every start
     if (Elisa::ElisaConfiguration::self()->checkForUpdatesAtStartup()) {
         QTimer::singleShot(2500, d->mUpdateChecker.get(), [this] {
@@ -761,6 +788,109 @@ void ElisaApplication::setImportMenuEnabled(bool value)
 
     Elisa::ElisaConfiguration::setInstallImportMenu(value);
     Elisa::ElisaConfiguration::self()->save();
+}
+
+bool ElisaApplication::sortImportedMusic() const
+{
+    return d->mSortImportedMusic;
+}
+
+void ElisaApplication::setSortImportedMusic(bool value)
+{
+    if (d->mSortImportedMusic == value) {
+        return;
+    }
+
+    d->mSortImportedMusic = value;
+    Q_EMIT sortImportedMusicChanged();
+
+    Elisa::ElisaConfiguration::setSortImportedMusic(value);
+    Elisa::ElisaConfiguration::self()->save();
+}
+
+void ElisaApplication::processImportQueues()
+{
+    QList<std::pair<QString, QStringList>> work;
+
+    const auto roots = Elisa::ElisaConfiguration::self()->rootPath();
+    for (const auto &configuredRoot : roots) {
+        const auto root = QDir::cleanPath(configuredRoot);
+        QFile queue{root + u"/.elisa-import-queue"_s};
+        if (!queue.open(QIODevice::ReadOnly)) {
+            continue;
+        }
+        QStringList items;
+        const auto lines = queue.readAll().split('\n');
+        for (const auto &line : lines) {
+            if (!line.trimmed().isEmpty()) {
+                items.push_back(QString::fromUtf8(line));
+            }
+        }
+        queue.close();
+        queue.remove();
+
+        if (d->mSortImportedMusic && !items.isEmpty()) {
+            work.push_back({root, items});
+        }
+    }
+
+    sortInBackground(work);
+}
+
+void ElisaApplication::sortMusicFolders()
+{
+    QList<std::pair<QString, QStringList>> work;
+
+    const auto roots = Elisa::ElisaConfiguration::self()->rootPath();
+    for (const auto &configuredRoot : roots) {
+        const auto root = QDir::cleanPath(configuredRoot);
+        work.push_back({root, QStringList{root}});
+    }
+
+    sortInBackground(work);
+}
+
+void ElisaApplication::sortInBackground(const QList<std::pair<QString, QStringList>> &work)
+{
+    if (work.isEmpty()) {
+        return;
+    }
+
+    auto *watcher = new QFutureWatcher<MusicOrganizer::Result>(this);
+    connect(watcher, &QFutureWatcher<MusicOrganizer::Result>::finished, this, [this, watcher] {
+        const auto result = watcher->result();
+        watcher->deleteLater();
+        Q_EMIT musicSorted(result.moved, result.failed);
+        if (result.moved > 0 && d->mMusicManager) {
+            d->mMusicManager->scanCollection(MusicListenersManager::CollectionScan::Soft);
+        }
+    });
+    // hidden songs stay where they are, so they stay hidden
+    const auto hidden = d->mBlacklist->hiddenFiles();
+    watcher->setFuture(QtConcurrent::run([work, hidden] {
+        FileScanner scanner;
+        const MusicOrganizer::TagReader readTags = [&scanner, &hidden](const QString &file) {
+            MusicOrganizer::SongTags tags;
+            if (hidden.contains(QUrl::fromLocalFile(file)) || !scanner.shouldScanFile(file)) {
+                return tags;
+            }
+            const auto track = scanner.scanOneFile(QUrl::fromLocalFile(file));
+            tags.isSong = track.isValid();
+            tags.artist = track.artist();
+            tags.albumArtist = track.albumArtist();
+            tags.album = track.album();
+            return tags;
+        };
+
+        MusicOrganizer::Result total;
+        for (const auto &[root, items] : work) {
+            const auto result = MusicOrganizer::organize(root, items, readTags);
+            total.moved += result.moved;
+            total.alreadyInPlace += result.alreadyInPlace;
+            total.failed += result.failed;
+        }
+        return total;
+    }));
 }
 
 QString ElisaApplication::adjustedTitle(const QString &title, int trackNumber) const
