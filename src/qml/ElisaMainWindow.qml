@@ -632,6 +632,10 @@ Kirigami.ApplicationWindow {
         if (persistentSettings.contentViewState) {
             contentView.restoreState(persistentSettings.contentViewState);
         }
+        if (!(persistentSettings.playListPreferredWidth > 0)) {
+            // never resized by the user: start with a readable playlist width
+            contentView.applyDefaultPlayListWidth();
+        }
 
         // it seems the header/footer bars load before settings are loaded, so we need to set their settings here
         mediaPlayerControl.playerControl.volume = persistentSettings.playControlItemVolume;

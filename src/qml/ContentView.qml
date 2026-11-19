@@ -24,6 +24,19 @@ SplitView {
     property alias playListHiddenCachedWidth: playListContainer.hiddenCachedWidth
     readonly property alias playListPreferredWidth: playListContainer.preferredWidth
 
+    /**
+     * Give the playlist a readable width when none was chosen yet (first start),
+     * instead of leaving it at its minimum width where song titles do not fit.
+     */
+    function applyDefaultPlayListWidth() {
+        const defaultWidth = Math.round(Math.max(16 * Kirigami.Units.gridUnit,
+                                                 Math.min(20 * Kirigami.Units.gridUnit, contentViewContainer.width * 0.33)))
+        playListContainer.hiddenCachedWidth = defaultWidth
+        if (playListContainer.state === "playlistVisible") {
+            playListContainer.SplitView.preferredWidth = defaultWidth
+        }
+    }
+
     signal viewIndexChanged
 
     onViewIndexChanged: desktopSidebar.updateSidebarIndex()
