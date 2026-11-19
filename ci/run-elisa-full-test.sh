@@ -10,6 +10,7 @@ else
   CONF=$HOME/.var/app/org.kde.elisa/config
   flatpak override --user --filesystem=$HOME/Music org.kde.elisa
   flatpak override --user --env=QSG_INFO=1 org.kde.elisa   # log which renderer is used
+  flatpak override --user --env=QT_LOGGING_RULES=org.kde.elisa.views.debug=true org.kde.elisa
 fi
 mkdir -p $CONF
 
@@ -49,7 +50,7 @@ key()   { xdotool key --clearmodifiers "$@"; sleep 3; }
 
 start_elisa() {
   if [ -n "$APPIMAGE_PATH" ]; then
-    QSG_INFO=1 "$APPIMAGE_PATH" > $OUT/$1.log 2>&1 &
+    QSG_INFO=1 QT_LOGGING_RULES=org.kde.elisa.views.debug=true "$APPIMAGE_PATH" > $OUT/$1.log 2>&1 &
   else
     flatpak run org.kde.elisa > $OUT/$1.log 2>&1 &
   fi
@@ -68,7 +69,7 @@ stop_elisa() {
 }
 
 # sidebar rows (y) and grid tiles (x)
-NOWPLAYING=198; RECENT=234; FREQUENT=270; ALBUMS=306; ARTISTS=342; TRACKS=378; GENRES=414; FILES=450; RADIOS=486
+NOWPLAYING=198; RECENT=234; FREQUENT=270; ALBUMS=306; ARTISTS=342; TRACKS=378; GENRES=414; FILES=450; RADIOS=486; ADDED=522
 TILE1=300; TILE2=466; TILE3=631
 
 mkdir -p /tmp/fb
@@ -100,6 +101,7 @@ click 60 $TRACKS;      shot view-tracks
 click 60 $GENRES;      shot view-genres
 click 60 $FILES;       shot view-files
 click 60 $RADIOS;      shot view-radio-stations
+click 60 $ADDED;       shot view-recently-added
 
 # Albums: open "Random Access Memories" (3rd tile), then play it
 click 60 $ALBUMS
@@ -139,8 +141,34 @@ key Escape
 
 # Color Scheme submenu and the Dark Mode toggle
 click 880 154 2;       shot menu
-hover 646 328 2;       shot menu-color-scheme-submenu
+hover 646 328 2;       shot menu-sleep-timer-submenu
+hover 646 355 2;       shot menu-color-scheme-submenu
 key Escape; key Escape
+
+# sleep timer: 15 minutes, check the menu shows the countdown, then switch it off
+click 880 154 2; hover 646 328 2; click 520 355 2
+click 880 154 2;       shot sleep-timer-running-menu
+hover 646 328 2;       shot sleep-timer-running-submenu
+click 520 328 2
+click 880 154 2;       shot sleep-timer-off-menu
+key Escape
+
+# sleep timer: stop at the end of the current track (songs of this album are 12 s long)
+click 60 $ALBUMS
+click $((TILE3-49)) 378 2
+click 880 154 2; hover 646 328 2; shot sleep-timer-end-of-track-choice
+click 520 490 2
+sleep 16
+shot sleep-timer-paused-at-end-of-track
+click 60 $NOWPLAYING 3; shot sleep-timer-paused-now-playing
+
+# volume keyboard shortcuts
+click 60 $ARTISTS
+key ctrl+Down; key ctrl+Down; key ctrl+Down; key ctrl+Down
+hover 780 154 2;       shot volume-after-4x-ctrl-down
+key ctrl+Up; key ctrl+Up; key ctrl+Up; key ctrl+Up
+hover 780 154 2;       shot volume-after-4x-ctrl-up
+hover 450 400
 click 880 154 2; click 646 301 4; shot dark-mode-off-light-look
 click 60 $ALBUMS;      shot albums-in-light-mode
 click 880 154 2; click 646 301 4; shot dark-mode-back-on
@@ -172,5 +200,7 @@ stop_elisa
 
 cat $CONF/elisarc > $OUT/elisarc-after.txt
 grep -iE "renderer|GL_RENDERER|software|rhi" $OUT/run1.log | head -20 > $OUT/renderer.txt
-grep -iE "qml|failed|error|warning|cannot|undefined|TypeError|ReferenceError|crash|segmentation" $OUT/run1.log $OUT/run2.log > $OUT/problems.txt || echo "none" > $OUT/problems.txt
+echo "embedded cover cache: $(grep -c 'embedded cover cache hit' $OUT/run1.log) hits, $(grep -c 'embedded cover cache miss' $OUT/run1.log) misses (first run)" > $OUT/cover-cache.txt
+cat $OUT/cover-cache.txt
+grep -iE "qml|failed|error|warning|cannot|undefined|TypeError|ReferenceError|crash|segmentation" $OUT/run1.log $OUT/run2.log | grep -v "org.kde.elisa.views:" > $OUT/problems.txt || echo "none" > $OUT/problems.txt
 ls -la $OUT

@@ -69,7 +69,7 @@ jobs:
           git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" album-artist-appimage-results
 
   publish:
-    # add the AppImage to the existing build 10 release, next to the Flatpak
+    # add the AppImage to the latest release, next to the Flatpak
     needs: test
     runs-on: ubuntu-latest
     steps:
@@ -78,8 +78,16 @@ jobs:
           name: appimage
           path: dist
 
-      - name: Attach to album-artist-build-10
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: album-artist-build-10
-          files: dist/*
+      - name: Attach to the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          TAG=$(gh api "repos/$REPO/releases/latest" --jq .tag_name)
+          echo "Attaching to $TAG"
+          gh release upload "$TAG" dist/* --clobber --repo "$REPO"
+          if ! gh release view "$TAG" --repo "$REPO" --json body --jq .body | grep -q "AppImage"; then
+            gh release view "$TAG" --repo "$REPO" --json body --jq .body > notes.md
+            printf '\n**AppImage (any Linux, no install needed):** download `Elisa-album-artist-x86_64.AppImage`, make it executable\n(right-click → Properties → Permissions → "Is executable", or `chmod +x` in a terminal) and double-click it.\n' >> notes.md
+            gh release edit "$TAG" --repo "$REPO" --notes-file notes.md
+          fi
