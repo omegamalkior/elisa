@@ -71,6 +71,7 @@ enum FilterType {
     FilterByRecentlyPlayed,
     FilterByFrequentlyPlayed,
     FilterByPath,
+    FilterByRecentlyAdded,
 };
 
 Q_ENUM_NS(FilterType)

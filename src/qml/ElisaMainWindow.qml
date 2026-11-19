@@ -239,6 +239,29 @@ Kirigami.ApplicationWindow {
 
     readonly property int initialViewIndex: 3
 
+    // volume keyboard shortcuts
+    Shortcut {
+        sequences: ["Ctrl+Up"]
+        context: Qt.ApplicationShortcut
+        onActivated: {
+            const control = mainWindow.mediaPlayerControl ? mainWindow.mediaPlayerControl.playerControl : null
+            if (control) {
+                control.volume = Math.min(100, control.volume + 5)
+            }
+        }
+    }
+
+    Shortcut {
+        sequences: ["Ctrl+Down"]
+        context: Qt.ApplicationShortcut
+        onActivated: {
+            const control = mainWindow.mediaPlayerControl ? mainWindow.mediaPlayerControl.playerControl : null
+            if (control) {
+                control.volume = Math.max(0, control.volume - 5)
+            }
+        }
+    }
+
     readonly property var mediaPlayerControl: Kirigami.Settings.isMobile ? mobileFooterBarLoader.item : headerBarLoader.item
     readonly property alias fileDialog: fileDialog
 

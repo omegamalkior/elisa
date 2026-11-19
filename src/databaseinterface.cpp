@@ -230,6 +230,7 @@ public:
         , mSelectTrackEffectiveAlbumArtistQuery(mTracksDatabase)
         , mCountAlbumArtistTracksQuery(mTracksDatabase)
         , mSelectAllRecentlyPlayedTracksQuery(mTracksDatabase)
+        , mSelectAllRecentlyAddedTracksQuery(mTracksDatabase)
         , mSelectAllFrequentlyPlayedTracksQuery(mTracksDatabase)
         , mClearTracksDataTable(mTracksDatabase)
         , mClearTracksTable(mTracksDatabase)
@@ -435,6 +436,8 @@ public:
     QSqlQuery mCountAlbumArtistTracksQuery;
 
     QSqlQuery mSelectAllRecentlyPlayedTracksQuery;
+
+    QSqlQuery mSelectAllRecentlyAddedTracksQuery;
 
     QSqlQuery mSelectAllFrequentlyPlayedTracksQuery;
 
@@ -670,6 +673,29 @@ DataTypes::ListTrackDataType DatabaseInterface::recentlyPlayedTracksData(int cou
     }
 
     result = internalRecentlyPlayedTracksData(count);
+
+    transactionResult = finishTransaction();
+    if (!transactionResult) {
+        return result;
+    }
+
+    return result;
+}
+
+DataTypes::ListTrackDataType DatabaseInterface::recentlyAddedTracksData(int count)
+{
+    auto result = DataTypes::ListTrackDataType{};
+
+    if (!d) {
+        return result;
+    }
+
+    auto transactionResult = startTransaction();
+    if (!transactionResult) {
+        return result;
+    }
+
+    result = internalRecentlyAddedTracksData(count);
 
     transactionResult = finishTransaction();
     if (!transactionResult) {
@@ -4211,6 +4237,11 @@ album.`ArtistName` IS NULL
 )
 ) AND 
 tracks.`AlbumPath` = album.`AlbumPath` AND 
+album.`Title` IN (
+  SELECT tracksOfArtist.`AlbumTitle` 
+  FROM `Tracks` tracksOfArtist 
+  WHERE tracksOfArtist.`ArtistName` = :artistFilter OR tracksOfArtist.`AlbumArtistName` = :artistFilter 
+) AND 
 EXISTS (
   SELECT tracks2.`Genre` 
   FROM 
@@ -4333,6 +4364,11 @@ album.`ArtistName` IS NULL
 )
 ) AND 
 tracks.`AlbumPath` = album.`AlbumPath` AND 
+album.`Title` IN (
+  SELECT tracksOfArtist.`AlbumTitle` 
+  FROM `Tracks` tracksOfArtist 
+  WHERE tracksOfArtist.`ArtistName` = :artistFilter OR tracksOfArtist.`AlbumArtistName` = :artistFilter 
+) AND 
 EXISTS (
   SELECT tracks2.`Genre` 
   FROM 
@@ -4901,6 +4937,144 @@ LIMIT :maximumResults
         if (!result) {
             qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::initDataQueries" << d->mSelectAllRecentlyPlayedTracksQuery.lastQuery();
             qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::initDataQueries" << d->mSelectAllRecentlyPlayedTracksQuery.lastError();
+
+            Q_EMIT databaseError();
+        }
+    }
+
+    {
+        auto selectAllTracksText =
+            uR"(
+SELECT 
+tracks.`ID`, 
+tracks.`Title`, 
+album.`ID`, 
+tracks.`ArtistName`, 
+( 
+SELECT 
+COUNT(DISTINCT tracksFromAlbum1.`ArtistName`) 
+FROM 
+`Tracks` tracksFromAlbum1 
+WHERE 
+tracksFromAlbum1.`AlbumTitle` = album.`Title` AND 
+(tracksFromAlbum1.`AlbumArtistName` = album.`ArtistName` OR 
+(tracksFromAlbum1.`AlbumArtistName` IS NULL AND 
+album.`ArtistName` IS NULL 
+) 
+) AND 
+tracksFromAlbum1.`AlbumPath` = album.`AlbumPath` 
+) AS ArtistsCount, 
+( 
+SELECT 
+GROUP_CONCAT(tracksFromAlbum2.`ArtistName`) 
+FROM 
+`Tracks` tracksFromAlbum2 
+WHERE 
+tracksFromAlbum2.`AlbumTitle` = album.`Title` AND 
+(tracksFromAlbum2.`AlbumArtistName` = album.`ArtistName` OR 
+(tracksFromAlbum2.`AlbumArtistName` IS NULL AND 
+album.`ArtistName` IS NULL 
+) 
+) AND 
+tracksFromAlbum2.`AlbumPath` = album.`AlbumPath` 
+) AS AllArtists, 
+tracks.`AlbumArtistName`, 
+tracksMapping.`FileName`, 
+tracksMapping.`FileModifiedTime`, 
+tracks.`TrackNumber`, 
+tracks.`DiscNumber`, 
+tracks.`Duration`, 
+tracks.`AlbumTitle`, 
+tracks.`Rating`, 
+album.`CoverFileName`, 
+(
+SELECT 
+COUNT(DISTINCT tracks2.DiscNumber) <= 1 
+FROM 
+`Tracks` tracks2 
+WHERE 
+tracks2.`AlbumTitle` = album.`Title` AND 
+(tracks2.`AlbumArtistName` = album.`ArtistName` OR 
+(tracks2.`AlbumArtistName` IS NULL AND 
+album.`ArtistName` IS NULL
+)
+) AND 
+tracks2.`AlbumPath` = album.`AlbumPath` 
+) as `IsSingleDiscAlbum`, 
+trackGenre.`Name`, 
+trackComposer.`Name`, 
+trackLyricist.`Name`, 
+tracks.`Comment`, 
+tracks.`Year`, 
+tracks.`Channels`, 
+tracks.`BitRate`, 
+tracks.`SampleRate`, 
+tracks.`HasEmbeddedCover`, 
+tracksMapping.`ImportDate`, 
+tracksMapping.`FirstPlayDate`, 
+tracksMapping.`LastPlayDate`, 
+tracksMapping.`PlayCounter`, 
+( 
+SELECT tracksCover.`FileName` 
+FROM 
+`Tracks` tracksCover 
+WHERE 
+tracksCover.`HasEmbeddedCover` = 1 AND 
+( 
+(tracksCover.`AlbumTitle` IS NULL AND 
+tracksCover.`FileName` = tracks.`FileName` ) OR 
+( 
+tracksCover.`AlbumTitle` = album.`Title` AND 
+(tracksCover.`AlbumArtistName` = album.`ArtistName` OR 
+(tracksCover.`AlbumArtistName` IS NULL AND 
+album.`ArtistName` IS NULL 
+) 
+) AND 
+tracksCover.`AlbumPath` = album.`AlbumPath` 
+) 
+) 
+) as EmbeddedCover 
+FROM 
+`Tracks` tracks, 
+`TracksData` tracksMapping 
+LEFT JOIN 
+`Albums` album 
+ON 
+tracks.`AlbumTitle` = album.`Title` AND 
+(tracks.`AlbumArtistName` = album.`ArtistName` OR tracks.`AlbumArtistName` IS NULL ) AND 
+tracks.`AlbumPath` = album.`AlbumPath` 
+LEFT JOIN `Genre` trackGenre ON trackGenre.`Name` = tracks.`Genre` 
+LEFT JOIN `Composer` trackComposer ON trackComposer.`Name` = tracks.`Composer` 
+LEFT JOIN `Lyricist` trackLyricist ON trackLyricist.`Name` = tracks.`Lyricist` 
+WHERE 
+tracksMapping.`FileName` = tracks.`FileName` AND 
+tracksMapping.`FileName` IN (
+     SELECT newestFiles.`FileName` 
+     FROM `TracksData` newestFiles 
+     ORDER BY newestFiles.`ImportDate` DESC 
+     LIMIT :maximumResults
+) AND 
+tracks.`Priority` = (
+     SELECT 
+     MIN(`Priority`) 
+     FROM 
+     `Tracks` tracks2 
+     WHERE 
+     tracks.`Title` = tracks2.`Title` AND 
+     (tracks.`ArtistName` IS NULL OR tracks.`ArtistName` = tracks2.`ArtistName`) AND 
+     (tracks.`AlbumTitle` IS NULL OR tracks.`AlbumTitle` = tracks2.`AlbumTitle`) AND 
+     (tracks.`AlbumArtistName` IS NULL OR tracks.`AlbumArtistName` = tracks2.`AlbumArtistName`) AND 
+     (tracks.`AlbumPath` IS NULL OR tracks.`AlbumPath` = tracks2.`AlbumPath`)
+)
+ORDER BY tracksMapping.`ImportDate` DESC 
+LIMIT :maximumResults
+)"_s;
+
+        auto result = prepareQuery(d->mSelectAllRecentlyAddedTracksQuery, selectAllTracksText);
+
+        if (!result) {
+            qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::initDataQueries" << d->mSelectAllRecentlyAddedTracksQuery.lastQuery();
+            qCCritical(orgKdeElisaDatabase) << "DatabaseInterface::initDataQueries" << d->mSelectAllRecentlyAddedTracksQuery.lastError();
 
             Q_EMIT databaseError();
         }
@@ -8348,6 +8522,20 @@ DataTypes::TrackDataType DatabaseInterface::buildTrackDataFromDatabaseRecord(con
         result[DataTypes::TrackDataType::key_type::SampleRateRole] = trackRecord.value(DatabaseInterfacePrivate::TrackSamplerate);
     }
     result[DataTypes::TrackDataType::key_type::HasEmbeddedCover] = trackRecord.value(DatabaseInterfacePrivate::TrackHasEmbeddedCover);
+    if (!trackRecord.value(DatabaseInterfacePrivate::TrackImportDate).isNull()) {
+        // day precision: tracks added on the same day stay grouped by album and track number
+        // (time zone maths are slow and whole albums share a day, so the last day is cached)
+        thread_local qint64 cachedDayStart = 0;
+        thread_local qint64 cachedDayEnd = 0;
+        thread_local QDateTime cachedDay;
+        const auto importTime = trackRecord.value(DatabaseInterfacePrivate::TrackImportDate).toLongLong();
+        if (importTime < cachedDayStart || importTime >= cachedDayEnd) {
+            cachedDay = QDateTime::fromMSecsSinceEpoch(importTime).date().startOfDay();
+            cachedDayStart = cachedDay.toMSecsSinceEpoch();
+            cachedDayEnd = cachedDay.addDays(1).toMSecsSinceEpoch();
+        }
+        result[DataTypes::TrackDataType::key_type::ImportDateRole] = cachedDay;
+    }
     result[DataTypes::TrackDataType::key_type::FileModificationTime] = trackRecord.value(DatabaseInterfacePrivate::TrackFileModifiedTime).toDateTime();
     if (!trackRecord.value(DatabaseInterfacePrivate::TrackFirstPlayDate).isNull()) {
         result[DataTypes::TrackDataType::key_type::FirstPlayDate] = trackRecord.value(DatabaseInterfacePrivate::TrackFirstPlayDate);
@@ -9691,6 +9879,29 @@ DataTypes::ListTrackDataType DatabaseInterface::internalRecentlyPlayedTracksData
     }
 
     d->mSelectAllRecentlyPlayedTracksQuery.finish();
+
+    return result;
+}
+
+DataTypes::ListTrackDataType DatabaseInterface::internalRecentlyAddedTracksData(int count)
+{
+    auto result = DataTypes::ListTrackDataType{};
+
+    d->mSelectAllRecentlyAddedTracksQuery.bindValue(QStringLiteral(":maximumResults"), count);
+
+    if (!internalGenericPartialData(d->mSelectAllRecentlyAddedTracksQuery)) {
+        return result;
+    }
+
+    while(d->mSelectAllRecentlyAddedTracksQuery.next()) {
+        const auto &currentRecord = d->mSelectAllRecentlyAddedTracksQuery.record();
+
+        auto newData = buildTrackDataFromDatabaseRecord(currentRecord);
+
+        result.push_back(newData);
+    }
+
+    d->mSelectAllRecentlyAddedTracksQuery.finish();
 
     return result;
 }

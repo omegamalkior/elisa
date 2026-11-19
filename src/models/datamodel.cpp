@@ -464,6 +464,10 @@ void DataModel::initializeModel(MusicListenersManager *manager, DatabaseInterfac
         connect(this, &DataModel::needFrequentlyPlayedData,
                 d->mDataLoader, &ModelDataLoader::loadFrequentlyPlayedData);
         break;
+    case ElisaUtils::FilterByRecentlyAdded:
+        connect(this, &DataModel::needRecentlyAddedData,
+                d->mDataLoader, &ModelDataLoader::loadRecentlyAddedData);
+        break;
     case ElisaUtils::FilterByPath:
     case ElisaUtils::UnknownFilter:
         break;
@@ -498,6 +502,9 @@ void DataModel::askModelData()
         break;
     case ElisaUtils::FilterByFrequentlyPlayed:
         Q_EMIT needFrequentlyPlayedData(d->mModelType);
+        break;
+    case ElisaUtils::FilterByRecentlyAdded:
+        Q_EMIT needRecentlyAddedData(d->mModelType);
         break;
     case ElisaUtils::FilterByPath:
     case ElisaUtils::UnknownFilter:

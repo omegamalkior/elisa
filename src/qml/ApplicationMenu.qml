@@ -73,6 +73,55 @@ Menu {
     }
 
     Menu {
+        id: sleepTimerMenu
+
+        readonly property var timer: ElisaApplication.sleepTimer
+
+        title: timer.active
+               ? KI18n.i18ncp("@action:inmenu this has child menu items", "Sleep Timer (%1 minute left)", "Sleep Timer (%1 minutes left)", timer.remainingMinutes)
+               : (timer.stopAfterCurrentTrack
+                  ? KI18n.i18nc("@action:inmenu this has child menu items", "Sleep Timer (end of track)")
+                  : KI18n.i18nc("@action:inmenu this has child menu items", "Sleep Timer"))
+        icon.name: "chronometer"
+
+        MenuItem {
+            text: KI18n.i18nc("@action:inmenu switch the sleep timer off", "Off")
+            checkable: true
+            checked: !sleepTimerMenu.timer.active && !sleepTimerMenu.timer.stopAfterCurrentTrack
+            onTriggered: {
+                sleepTimerMenu.timer.cancel()
+                sleepTimerMenu.timer.stopAfterCurrentTrack = false
+                applicationMenu.close()
+            }
+        }
+
+        Repeater {
+            model: [15, 30, 45, 60, 90]
+            delegate: MenuItem {
+                required property int modelData
+
+                text: KI18n.i18ncp("@action:inmenu pause playback after this many minutes", "%1 minute", "%1 minutes", modelData)
+                onTriggered: {
+                    sleepTimerMenu.timer.stopAfterCurrentTrack = false
+                    sleepTimerMenu.timer.start(modelData)
+                    applicationMenu.close()
+                }
+            }
+        }
+
+        MenuItem {
+            text: KI18n.i18nc("@action:inmenu pause playback when the current track ends", "End of Current Track")
+            checkable: true
+            checked: sleepTimerMenu.timer.stopAfterCurrentTrack
+            onTriggered: {
+                sleepTimerMenu.timer.cancel()
+                sleepTimerMenu.timer.stopAfterCurrentTrack = true
+                applicationMenu.close()
+            }
+        }
+    }
+
+    Menu {
         title: KI18n.i18nc("@action:inmenu this has child menu items", "Color Scheme")
         Repeater {
             model: ElisaApplication.colorSchemesModel

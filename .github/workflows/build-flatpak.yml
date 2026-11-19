@@ -71,9 +71,15 @@ jobs:
         with:
           tag_name: album-artist-build-${{ github.run_number }}
           target_commitish: ${{ github.sha }}
-          name: Elisa with "Only show album artists" (build ${{ github.run_number }})
+          name: Elisa 26.08.3 – Album Artist support, Dark Mode toggle & modern look (build ${{ github.run_number }})
           body: |
-            Elisa 26.08.3 with the "Only show album artists" option, a Dark Mode toggle and a more modern look.
+            Elisa 26.08.3 (KDE music player) with:
+            - Album Artist (TPE2) support: an optional Settings checkbox to group the Artists view by album artist. Off by default, so Elisa shows every artist as usual.
+            - A Dark Mode toggle in the ☰ menu.
+            - A more modern look: rounded covers and cards, artist initial badges, pill-shaped sidebar.
+            - A Recently Added view, a Sleep Timer (☰ menu) and volume shortcuts (Ctrl+Up / Ctrl+Down).
+            - Faster: artist pages open instantly on big libraries, and album covers are cached while browsing.
+
             Install on Steam Deck / Linux: download elisa-album-artist.flatpak and double-click it (or run
             flatpak install elisa-album-artist.flatpak in Konsole).
           files: elisa-album-artist.flatpak

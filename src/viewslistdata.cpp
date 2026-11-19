@@ -135,6 +135,19 @@ public:
                                                Qt::AscendingOrder,
                                                {i18nc("@item:inmenu", "A–Z"), i18nc("@item:inmenu", "Z–A")},
                                                ViewManager::MultipleAlbum,
+                                               ViewManager::NoDiscHeaders},
+                                              {{i18nc("@title:window Title of the view of recently added tracks", "Recently Added")},
+                                               QUrl{QStringLiteral("image://icon/appointment-new")},
+                                               ViewManager::TrackView,
+                                               ViewManager::GenericDataModel,
+                                               ElisaUtils::FilterByRecentlyAdded,
+                                               ElisaUtils::Track,
+                                               DataTypes::ImportDateRole,
+                                               {DataTypes::ImportDateRole},
+                                               {i18nc("@title:menu", "Date Added")},
+                                               Qt::DescendingOrder,
+                                               {i18nc("@item:inmenu", "Oldest First"), i18nc("@item:inmenu", "Newest First")},
+                                               ViewManager::MultipleAlbum,
                                                ViewManager::NoDiscHeaders}};
 
     const int mNumOfBaseViews = mViewsParameters.count();

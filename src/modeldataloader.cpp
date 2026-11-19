@@ -343,6 +343,33 @@ void ModelDataLoader::loadRecentlyPlayedData(ElisaUtils::PlayListEntryType dataT
     }
 }
 
+void ModelDataLoader::loadRecentlyAddedData(ElisaUtils::PlayListEntryType dataType)
+{
+    if (!d->mDatabase) {
+        return;
+    }
+
+    d->mFilterType = ModelDataLoader::FilterType::FilterByRecentlyAdded;
+
+    switch (dataType)
+    {
+    case ElisaUtils::Track:
+        Q_EMIT allTracksData(d->mDatabase->recentlyAddedTracksData(200));
+        break;
+    case ElisaUtils::Album:
+    case ElisaUtils::Artist:
+    case ElisaUtils::Composer:
+    case ElisaUtils::Genre:
+    case ElisaUtils::Lyricist:
+    case ElisaUtils::FileName:
+    case ElisaUtils::Unknown:
+    case ElisaUtils::Radio:
+    case ElisaUtils::Container:
+    case ElisaUtils::PlayList:
+        break;
+    }
+}
+
 void ModelDataLoader::loadFrequentlyPlayedData(ElisaUtils::PlayListEntryType dataType)
 {
     if (!d->mDatabase) {
@@ -392,6 +419,7 @@ void ModelDataLoader::databaseTracksAdded(const ListTrackDataType &newData)
     case ModelDataLoader::FilterType::FilterByArtist:
     case ModelDataLoader::FilterType::FilterByRecentlyPlayed:
     case ModelDataLoader::FilterType::FilterByFrequentlyPlayed:
+    case ModelDataLoader::FilterType::FilterByRecentlyAdded:
     case ModelDataLoader::FilterType::FilterByPath:
     case ModelDataLoader::FilterType::UnknownFilter:
         break;
@@ -420,6 +448,7 @@ void ModelDataLoader::databaseArtistsAdded(const ListArtistDataType &newData)
     case ModelDataLoader::FilterType::FilterById:
     case ModelDataLoader::FilterType::FilterByRecentlyPlayed:
     case ModelDataLoader::FilterType::FilterByFrequentlyPlayed:
+    case ModelDataLoader::FilterType::FilterByRecentlyAdded:
     case ModelDataLoader::FilterType::FilterByPath:
     case ModelDataLoader::FilterType::UnknownFilter:
         break;
@@ -461,6 +490,7 @@ void ModelDataLoader::databaseAlbumsAdded(const ListAlbumDataType &newData)
     case ModelDataLoader::FilterType::FilterById:
     case ModelDataLoader::FilterType::FilterByRecentlyPlayed:
     case ModelDataLoader::FilterType::FilterByFrequentlyPlayed:
+    case ModelDataLoader::FilterType::FilterByRecentlyAdded:
     case ModelDataLoader::FilterType::FilterByPath:
     case ModelDataLoader::FilterType::UnknownFilter:
         break;
