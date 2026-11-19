@@ -8,6 +8,7 @@
 
 #include <QCoreApplication>
 #include <QCryptographicHash>
+#include <QDebug>
 #include <QDesktopServices>
 #include <QDir>
 #include <QFileInfo>
@@ -125,6 +126,7 @@ void UpdateChecker::checkFinished(QNetworkReply *reply, bool userRequested)
     reply->deleteLater();
 
     if (reply->error() != QNetworkReply::NoError) {
+        qInfo().noquote() << "Elisa update check failed:" << reply->errorString();
         if (userRequested) {
             fail(i18nc("@info", "Could not check for updates: %1", reply->errorString()));
         } else {
@@ -145,6 +147,9 @@ void UpdateChecker::checkFinished(QNetworkReply *reply, bool userRequested)
         }
         return;
     }
+
+    qInfo() << "Elisa update check: this is build" << mCurrentBuild << "- latest published build is" << mRelease.build
+            << "- can install by itself:" << canInstall();
 
     if (mRelease.build > mCurrentBuild) {
         setState(UpdateAvailable);

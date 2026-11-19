@@ -304,6 +304,8 @@ BEFORE=$(flatpak info --user org.kde.elisa 2>/dev/null | grep -i commit | head -
 start_elisa run4 ELISA_FORK_BUILD_NUMBER_OVERRIDE=1
 shot update-banner-at-startup
 check "folder imported while closed is sorted at startup, cover included" '[ -f "$HOME/Music/Night Owl/Closed EP/01 Later.mp3" ] && [ -f "$HOME/Music/Night Owl/Closed EP/cover.jpg" ] && [ ! -e "$HOME/Music/Closed EP" ]'
+grep "Elisa update check" $OUT/run4.log >> $OUT/checks.txt
+check "update check ran at startup and saw the published build" 'grep -q "Elisa update check: this is build 1 - latest published build is" $OUT/run4.log' WARN
 if [ -z "$APPIMAGE_PATH" ]; then
   # Flatpak: let Elisa install the published build by itself
   click ${UPDATE_BTN_X:-790} 207 60; shot update-after-update-now
