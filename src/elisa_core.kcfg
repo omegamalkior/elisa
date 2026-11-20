@@ -103,8 +103,8 @@
     <choice name="ContextView" />
     <choice name="RecentlyPlayed" />
     <choice name="FrequentlyPlayed" />
-    <choice name="AllAlbums" />
     <choice name="AllArtists" />
+    <choice name="AllAlbums" />
     <choice name="AllTracks" />
     <choice name="AllGenres" />
     <choice name="Files" />
