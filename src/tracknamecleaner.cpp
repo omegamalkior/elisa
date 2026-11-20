@@ -77,3 +77,88 @@ QString TrackNameCleaner::fileName(const QUrl &file)
 {
     return file.fileName();
 }
+
+namespace
+{
+// words that are never part of an artist or a title, at the start or the end of a part
+bool isJunkWord(const QString &word)
+{
+    static const QRegularExpression junk{
+        u"^(blah+|free|download|downloaded|mp3|m4a|flac|lyrics?|official|audio|video|hd|hq|4k|\\d{3,4}p|\\d{2,3}kbps|kbps|full|song|"
+        u"remastered|www\\..+|.+\\.(com|net|org|ru|to|cc|io|me)|[-–—_.,:;|~=+*#]+)$"_s,
+        QRegularExpression::CaseInsensitiveOption};
+    return junk.match(word).hasMatch();
+}
+
+QString withoutJunkWords(const QString &text)
+{
+    auto words = text.split(u' ', Qt::SkipEmptyParts);
+    while (!words.isEmpty() && isJunkWord(words.first())) {
+        words.removeFirst();
+    }
+    while (!words.isEmpty() && isJunkWord(words.last())) {
+        words.removeLast();
+    }
+    return words.join(u' ');
+}
+
+// "Pain (Subtit" -> "Pain": a bracket cut off by a too-short file name
+QString withoutOpenBracket(const QString &text)
+{
+    static const QRegularExpression openBracket{u"\\s*[\\[(][^\\])]*$"_s};
+    auto result = text;
+    result.remove(openBracket);
+    return result.trimmed();
+}
+}
+
+TrackNameCleaner::GuessedTags TrackNameCleaner::guessFromFileName(const QString &fileName, const QStringList &knownArtists)
+{
+    static const QRegularExpression extension{u"\\.(mp3|flac|m4a|mp4|aac|ogg|oga|opus|wav|wma|aiff?|ape|mka|webm)$"_s, QRegularExpression::CaseInsensitiveOption};
+    static const QRegularExpression separator{u"\\s+[-–—]\\s+"_s};
+    static const QRegularExpression spaces{u"\\s{2,}"_s};
+
+    auto name = fileName.trimmed();
+    name.remove(extension);
+    if (name.count(u'_') >= 2 || (name.contains(u'_') && !name.contains(u' '))) {
+        name.replace(u'_', u' ');
+    }
+    name.replace(spaces, u" "_s);
+
+    const auto match = separator.match(name);
+    if (!match.hasMatch()) {
+        return {};
+    }
+
+    // artist: "01 - " track numbers and junk words go; a known artist inside wins
+    auto artist = withoutJunkWords(adjustedTitle(name.left(match.capturedStart())));
+    QString bestKnown;
+    for (const auto &known : knownArtists) {
+        const auto trimmed = known.trimmed();
+        if (trimmed.size() <= bestKnown.size() || trimmed.isEmpty()) {
+            continue;
+        }
+        const QRegularExpression whole{u"(^|\\s)"_s + QRegularExpression::escape(trimmed) + u"($|\\s)"_s, QRegularExpression::CaseInsensitiveOption};
+        if (whole.match(artist).hasMatch()) {
+            bestKnown = trimmed;
+        }
+    }
+    if (!bestKnown.isEmpty()) {
+        artist = bestKnown;
+    }
+
+    // title: download leftovers, a cut-off bracket and junk words go
+    auto title = name.mid(match.capturedEnd());
+    for (int pass = 0; pass < 3; ++pass) {
+        const auto before = title;
+        title = withoutJunkWords(withoutOpenBracket(adjustedTitle(title)));
+        if (title == before) {
+            break;
+        }
+    }
+
+    if (artist.isEmpty() || title.isEmpty()) {
+        return {};
+    }
+    return {artist, title};
+}

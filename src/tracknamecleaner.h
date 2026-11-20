@@ -9,6 +9,7 @@
 
 #include <QString>
 #include <QUrl>
+#include <QStringList>
 
 /**
  * Turns raw song titles and file names into the tidy names a music player shows.
@@ -29,6 +30,21 @@ namespace TrackNameCleaner
 
 /// The name of the file a song is stored in ("03 - Painkiller.mp3")
 [[nodiscard]] ELISALIB_EXPORT QString fileName(const QUrl &file);
+
+/// Artist and title read from a file name like "Three Days Grace - Pain.mp3"
+struct GuessedTags {
+    QString artist;
+    QString title;
+};
+
+/**
+ * For songs without tags: the artist and title in a file name "Artist - Title",
+ * without junk words ("blah", "free download", "mp3"...), site names, a cut-off
+ * "(Subtit" and the leftovers adjustedTitle removes. When \a knownArtists holds an
+ * artist named inside the artist part ("blah Three Days Grace"), that name is used.
+ * Both are empty when the name has no "Artist - Title" form. The file is not touched.
+ */
+[[nodiscard]] ELISALIB_EXPORT GuessedTags guessFromFileName(const QString &fileName, const QStringList &knownArtists = {});
 }
 
 #endif // TRACKNAMECLEANER_H

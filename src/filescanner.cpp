@@ -5,6 +5,8 @@
  */
 
 #include "filescanner.h"
+#include "tracknamecleaner.h"
+#include "elisa_settings.h"
 
 #include "config-upnp-qt.h"
 
@@ -22,6 +24,7 @@
 #endif
 
 #include <QDir>
+#include <QDateTime>
 #include <QFileInfo>
 #include <QHash>
 #include <QLocale>
@@ -50,6 +53,24 @@ public:
 #endif
 
     QMimeDatabase mMimeDb;
+
+    // artist folders of the music folders, to recognise an artist in a file name
+    QStringList mKnownArtists;
+    qint64 mKnownArtistsTime = 0;
+
+    const QStringList &knownArtists()
+    {
+        const auto now = QDateTime::currentMSecsSinceEpoch();
+        if (now - mKnownArtistsTime > 10000) {
+            mKnownArtistsTime = now;
+            mKnownArtists.clear();
+            const auto roots = Elisa::ElisaConfiguration::self()->rootPath();
+            for (const auto &root : roots) {
+                mKnownArtists += QDir{root}.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+            }
+        }
+        return mKnownArtists;
+    }
 
 #if KFFileMetaData_FOUND
     const QHash<KFileMetaData::Property::Property, DataTypes::ColumnsRoles> propertyTranslation = {
@@ -151,6 +172,7 @@ DataTypes::TrackDataType FileScanner::scanOneFile(const QUrl &scanFile, const QF
         newTrack[DataTypes::RatingRole] = 0;
         newTrack[DataTypes::DurationRole] = QTime::fromMSecsSinceStartOfDay(1);
         newTrack[DataTypes::ElementTypeRole] = ElisaUtils::Track;
+        fillInFromFileName(scanFileInfo.fileName(), newTrack);
 
         return newTrack;
     }
@@ -164,6 +186,7 @@ DataTypes::TrackDataType FileScanner::scanOneFile(const QUrl &scanFile, const QF
     d->mAllProperties = result.properties();
 
     scanProperties(localFileName, newTrack);
+    fillInFromFileName(scanFileInfo.fileName(), newTrack);
 
     qCDebug(orgKdeElisaIndexer()) << "scanOneFile" << scanFile << "using KFileMetaData" << newTrack;
 #else
@@ -183,6 +206,26 @@ DataTypes::TrackDataType FileScanner::scanOneFile(const QUrl &scanFile)
     } else {
         const QFileInfo scanFileInfo(scanFile.toLocalFile());
         return FileScanner::scanOneFile(scanFile, scanFileInfo);
+    }
+}
+
+void FileScanner::fillInFromFileName(const QString &fileName, DataTypes::TrackDataType &trackData)
+{
+    // only for songs without an artist tag; only Elisa's library gets the guess,
+    // the file and its name stay as they are
+    if (!trackData.value(DataTypes::ArtistRole).toString().trimmed().isEmpty()
+        || !trackData.value(DataTypes::AlbumArtistRole).toString().trimmed().isEmpty()) {
+        return;
+    }
+    const auto guess = TrackNameCleaner::guessFromFileName(fileName, d->knownArtists());
+    if (guess.artist.isEmpty()) {
+        return;
+    }
+    trackData[DataTypes::ArtistRole] = guess.artist;
+    // no title tag, or the file name standing in for one
+    const auto title = trackData.value(DataTypes::TitleRole).toString().trimmed();
+    if (title.isEmpty() || title == fileName || title == QFileInfo{fileName}.completeBaseName()) {
+        trackData[DataTypes::TitleRole] = guess.title;
     }
 }
 

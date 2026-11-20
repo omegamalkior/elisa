@@ -37,6 +37,9 @@ private:
 
     void scanProperties(const QString &localFileName, DataTypes::TrackDataType &trackData);
 
+    /// artist and title from the file name, for songs without an artist tag
+    void fillInFromFileName(const QString &fileName, DataTypes::TrackDataType &trackData);
+
     bool checkEmbeddedCoverImage(const QString &localFileName);
 
     std::unique_ptr<FileScannerPrivate> d;
