@@ -7,6 +7,17 @@
 
 #include "elisaapplication.h"
 
+#include "config-upnp-qt.h"
+
+#if QtDBus_FOUND
+#include <QDBusConnection>
+#include <QDBusMessage>
+#include <QDBusPendingCallWatcher>
+#endif
+
+#include <memory>
+#include <functional>
+
 #include "musiclistenersmanager.h"
 
 #include "mediaplaylist.h"
@@ -929,6 +940,86 @@ qint64 archiveContentSize(const QString &bsdtar, const QString &archive)
     return total;
 }
 
+// progress of an import: (progress 0..1 or -1 when unknown, status, done)
+using ImportReport = std::function<void(qreal, const QString &, bool)>;
+
+// the first music folder: where imported music goes
+QString importDestination()
+{
+    QString destination;
+    const auto roots = Elisa::ElisaConfiguration::self()->rootPath();
+    for (const auto &root : roots) {
+        if (QFileInfo{root}.isDir()) {
+            destination = QDir::cleanPath(root);
+            break;
+        }
+    }
+    if (destination.isEmpty()) {
+        destination = QStandardPaths::writableLocation(QStandardPaths::MusicLocation);
+    }
+    QDir{}.mkpath(destination);
+    return destination;
+}
+
+// sorts the songs of \a imported (files or folders inside \a destination) into
+// Artist/Album folders, following the songs whose tags are read; returns how many songs
+int sortIntoAlbumFolders(const QString &destination, const QStringList &imported, const QSet<QUrl> &hidden, const ImportReport &report)
+{
+    FileScanner scanner;
+    int total = 0;
+    for (const auto &item : imported) {
+        if (QFileInfo{item}.isFile()) {
+            if (scanner.shouldScanFile(item)) {
+                ++total;
+            }
+            continue;
+        }
+        QDirIterator it{item, QDir::Files, QDirIterator::Subdirectories};
+        while (it.hasNext()) {
+            if (scanner.shouldScanFile(it.next())) {
+                ++total;
+            }
+        }
+    }
+
+    int read = 0;
+    const MusicOrganizer::TagReader readTags = [&](const QString &songFile) {
+        MusicOrganizer::SongTags tags;
+        const bool counted = scanner.shouldScanFile(songFile);
+        if (counted) {
+            ++read;
+            report(total > 0 ? std::min(1.0, static_cast<qreal>(read) / total) : -1.0,
+                   i18nc("@info:progress %1 number, %2 count", "Sorting into Artist/Album folders (%1 of %2)…", std::min(read, total), total), false);
+        }
+        if (hidden.contains(QUrl::fromLocalFile(songFile)) || !counted) {
+            return tags;
+        }
+        const auto track = scanner.scanOneFile(QUrl::fromLocalFile(songFile));
+        tags.isSong = track.isValid();
+        tags.artist = track.artist();
+        tags.albumArtist = track.albumArtist();
+        tags.album = track.album();
+        return tags;
+    };
+    report(0, i18nc("@info:progress", "Sorting into Artist/Album folders…"), false);
+    const auto result = MusicOrganizer::organize(destination, imported, readTags);
+    return result.moved + result.alreadyInPlace;
+}
+
+// what a folder holds: number of files and their total size
+std::pair<int, qint64> folderContents(const QString &folder)
+{
+    int files = 0;
+    qint64 size = 0;
+    QDirIterator it{folder, QDir::Files | QDir::Hidden | QDir::NoSymLinks, QDirIterator::Subdirectories};
+    while (it.hasNext()) {
+        it.next();
+        ++files;
+        size += it.fileInfo().size();
+    }
+    return {files, size};
+}
+
 }
 
 void ElisaApplication::importArchives(const QList<QUrl> &archives)
@@ -944,19 +1035,7 @@ void ElisaApplication::importArchives(const QList<QUrl> &archives)
         return;
     }
 
-    // into the first music folder
-    QString destination;
-    const auto roots = Elisa::ElisaConfiguration::self()->rootPath();
-    for (const auto &root : roots) {
-        if (QFileInfo{root}.isDir()) {
-            destination = QDir::cleanPath(root);
-            break;
-        }
-    }
-    if (destination.isEmpty()) {
-        destination = QStandardPaths::writableLocation(QStandardPaths::MusicLocation);
-    }
-    QDir{}.mkpath(destination);
+    const auto destination = importDestination();
 
     const auto bsdtar = QStandardPaths::findExecutable(u"bsdtar"_s);
     if (bsdtar.isEmpty()) {
@@ -988,16 +1067,8 @@ void ElisaApplication::importArchives(const QList<QUrl> &archives)
     setImportState(true, 0, i18nc("@info:progress", "Unpacking…"), false);
 
     // progress updates from the worker thread
-    auto report = [this](qreal progress, const QString &status, bool done) {
-        QMetaObject::invokeMethod(this, [this, progress, status, done] {
-            setImportState(true, progress, status, done);
-            if (done) {
-                if (d->mMusicManager) {
-                    d->mMusicManager->scanCollection(MusicListenersManager::CollectionScan::Soft);
-                }
-                QTimer::singleShot(6000, this, &ElisaApplication::dismissImportStatus);
-            }
-        }, Qt::QueuedConnection);
+    const ImportReport report = [this](qreal progress, const QString &status, bool done) {
+        reportImport(progress, status, done);
     };
 
     auto importFuture = QtConcurrent::run([files, destination, bsdtar, sortMusic, hidden, report] {
@@ -1060,41 +1131,8 @@ void ElisaApplication::importArchives(const QList<QUrl> &archives)
 
         // 2. sort into Artist/Album folders, following the songs whose tags are read
         int songs = 0;
-        MusicOrganizer::Result result;
         if (sortMusic && !imported.isEmpty()) {
-            FileScanner scanner;
-            int total = 0;
-            for (const auto &item : std::as_const(imported)) {
-                QDirIterator it{item, QDir::Files, QDirIterator::Subdirectories};
-                while (it.hasNext()) {
-                    if (scanner.shouldScanFile(it.next())) {
-                        ++total;
-                    }
-                }
-            }
-
-            int read = 0;
-            const MusicOrganizer::TagReader readTags = [&](const QString &songFile) {
-                MusicOrganizer::SongTags tags;
-                const bool counted = scanner.shouldScanFile(songFile);
-                if (counted) {
-                    ++read;
-                    report(total > 0 ? std::min(1.0, static_cast<qreal>(read) / total) : -1.0,
-                           i18nc("@info:progress %1 number, %2 count", "Sorting into Artist/Album folders (%1 of %2)…", std::min(read, total), total), false);
-                }
-                if (hidden.contains(QUrl::fromLocalFile(songFile)) || !counted) {
-                    return tags;
-                }
-                const auto track = scanner.scanOneFile(QUrl::fromLocalFile(songFile));
-                tags.isSong = track.isValid();
-                tags.artist = track.artist();
-                tags.albumArtist = track.albumArtist();
-                tags.album = track.album();
-                return tags;
-            };
-            report(0, i18nc("@info:progress", "Sorting into Artist/Album folders…"), false);
-            result = MusicOrganizer::organize(destination, imported, readTags);
-            songs = result.moved + result.alreadyInPlace;
+            songs = sortIntoAlbumFolders(destination, imported, hidden, report);
         }
 
         QString summary;
@@ -1113,6 +1151,132 @@ void ElisaApplication::importArchives(const QList<QUrl> &archives)
     Q_UNUSED(importFuture)
 #else
     Q_UNUSED(archives)
+#endif
+}
+
+void ElisaApplication::reportImport(qreal progress, const QString &status, bool done)
+{
+    // may be called from a worker thread
+    QMetaObject::invokeMethod(this, [this, progress, status, done] {
+        setImportState(true, progress, status, done);
+        if (done) {
+            if (d->mMusicManager) {
+                d->mMusicManager->scanCollection(MusicListenersManager::CollectionScan::Soft);
+            }
+            QTimer::singleShot(6000, this, &ElisaApplication::dismissImportStatus);
+        }
+    }, Qt::QueuedConnection);
+}
+
+void ElisaApplication::importFromArk(const QString &service, const QString &objectPath)
+{
+#if QtDBus_FOUND && defined Q_OS_LINUX && !defined Q_OS_ANDROID
+    // Songs dragged out of an archive opened in Ark come without a file: Ark hands out only
+    // the dragged songs once it is told where to put them. The archive itself stays packed.
+    if (service.trimmed().isEmpty() || objectPath.trimmed().isEmpty() || d->mImportBusy) {
+        return;
+    }
+
+    const auto destination = importDestination();
+    static int arkImports = 0;
+    const QString temporary = destination + u"/.elisa-ark-"_s + QString::number(QCoreApplication::applicationPid()) + u'-' + QString::number(arkImports++);
+    QDir{temporary}.removeRecursively();
+    QDir{}.mkpath(temporary);
+
+    setImportState(true, -1, i18nc("@info:progress", "Taking the songs out of the archive…"), false);
+
+    auto message = QDBusMessage::createMethodCall(service.trimmed(), objectPath.trimmed(), u"org.kde.ark.DndExtract"_s, u"extractSelectedFilesTo"_s);
+    message << temporary;
+    auto *call = new QDBusPendingCallWatcher(QDBusConnection::sessionBus().asyncCall(message), this);
+
+    connect(call, &QDBusPendingCallWatcher::finished, this, [this, call, temporary, destination] {
+        call->deleteLater();
+        if (call->isError()) {
+            qWarning() << "ElisaApplication::importFromArk" << "Ark did not hand out the songs:" << call->error().message();
+            QDir{temporary}.removeRecursively();
+            reportImport(1.0, i18nc("@info:status", "Could not take the songs out of the archive"), true);
+            return;
+        }
+
+        // Ark writes the songs on its own time: wait until they stop growing
+        struct Wait {
+            int stableTicks = 0;
+            int ticks = 0;
+            qint64 lastSize = -1;
+        };
+        auto wait = std::make_shared<Wait>();
+        auto *timer = new QTimer(this);
+        timer->setInterval(400);
+        connect(timer, &QTimer::timeout, this, [this, timer, wait, temporary, destination] {
+            ++wait->ticks;
+            const auto [files, size] = folderContents(temporary);
+            if (files > 0 && size == wait->lastSize) {
+                ++wait->stableTicks;
+            } else {
+                wait->stableTicks = 0;
+            }
+            wait->lastSize = size;
+
+            const bool ready = files > 0 && wait->stableTicks >= 4;
+            const bool gaveUp = files == 0 && wait->ticks >= 75; // 30 seconds without anything
+            if (!ready && !gaveUp) {
+                return;
+            }
+            timer->stop();
+            timer->deleteLater();
+
+            if (gaveUp) {
+                QDir{temporary}.removeRecursively();
+                reportImport(1.0, i18nc("@info:status", "Could not take the songs out of the archive"), true);
+                return;
+            }
+
+            const bool sortMusic = d->mSortImportedMusic;
+            const auto hidden = d->mBlacklist->hiddenFiles();
+            const ImportReport report = [this](qreal progress, const QString &status, bool done) {
+                reportImport(progress, status, done);
+            };
+
+            auto importFuture = QtConcurrent::run([temporary, destination, sortMusic, hidden, report] {
+                int songs = 0;
+                if (sortMusic) {
+                    songs = sortIntoAlbumFolders(destination, {temporary}, hidden, report);
+                } else {
+                    FileScanner scanner;
+                    QDirIterator it{temporary, QDir::Files, QDirIterator::Subdirectories};
+                    while (it.hasNext()) {
+                        if (scanner.shouldScanFile(it.next())) {
+                            ++songs;
+                        }
+                    }
+                }
+
+                // what is still there (no sorting, or files that are not songs) goes into the music folder
+                if (QFileInfo{temporary}.isDir()) {
+                    const auto entries = QDir{temporary}.entryList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden);
+                    for (const auto &entry : entries) {
+                        QDir{}.rename(temporary + u'/' + entry, uniquePath(destination + u'/' + entry));
+                    }
+                    QDir{temporary}.removeRecursively();
+                }
+
+                QString summary;
+                if (songs == 0) {
+                    summary = i18nc("@info:status", "No music among the dragged files");
+                } else if (sortMusic) {
+                    summary = i18ncp("@info:status", "Done: %1 song sorted into Artist/Album folders", "Done: %1 songs sorted into Artist/Album folders", songs);
+                } else {
+                    summary = i18ncp("@info:status", "Done: %1 song added to the music folder", "Done: %1 songs added to the music folder", songs);
+                }
+                report(1.0, summary, true);
+            });
+            Q_UNUSED(importFuture)
+        });
+        timer->start();
+    });
+#else
+    Q_UNUSED(service)
+    Q_UNUSED(objectPath)
 #endif
 }
 

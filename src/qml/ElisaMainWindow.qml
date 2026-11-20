@@ -178,6 +178,14 @@ Kirigami.ApplicationWindow {
         // archives (zip, 7z, rar, tar...) are unpacked into the music folder and sorted
         readonly property var archivePattern: /\.(zip|7z|rar|tar|tgz|tbz2|txz|tar\.(gz|bz2|xz|zst))$/i
         property bool archiveDrag: false
+        property bool arkDrag: false
+        // songs dragged out of an archive opened in Ark carry no file, only how to ask Ark for them
+        readonly property string arkService: "application/x-kde-ark-dndextract-service"
+        readonly property string arkPath: "application/x-kde-ark-dndextract-path"
+
+        function isArkDrag(formats) {
+            return ElisaApplication.canImportArchives() && formats.indexOf(arkService) !== -1 && formats.indexOf(arkPath) !== -1
+        }
 
         function archivesIn(urls) {
             const archives = []
@@ -194,12 +202,23 @@ Kirigami.ApplicationWindow {
         z: 1000
 
         onEntered: drag => {
-            archiveDrag = drag.hasUrls && ElisaApplication.canImportArchives() && archivesIn(drag.urls).length > 0
+            arkDrag = isArkDrag(drag.formats)
+            archiveDrag = arkDrag || (drag.hasUrls && ElisaApplication.canImportArchives() && archivesIn(drag.urls).length > 0)
         }
-        onExited: archiveDrag = false
+        onExited: {
+            archiveDrag = false
+            arkDrag = false
+        }
 
         onDropped: drop => {
             archiveDrag = false
+            arkDrag = false
+            if (isArkDrag(drop.formats)) {
+                // only the dragged songs are taken out; the archive stays packed
+                ElisaApplication.importFromArk(drop.getDataAsString(arkService), drop.getDataAsString(arkPath))
+                drop.accept(Qt.CopyAction)
+                return
+            }
             if (!drop.hasUrls) {
                 return
             }
@@ -259,7 +278,8 @@ Kirigami.ApplicationWindow {
 
                 QQC2.Label {
                     Layout.alignment: Qt.AlignHCenter
-                    text: KI18n.i18nc("@label", "Unpacked into your music folder and sorted into Artist/Album folders")
+                    text: dropArea.arkDrag ? KI18n.i18nc("@label", "Only the dragged songs are taken out of the archive and sorted into Artist/Album folders")
+                                           : KI18n.i18nc("@label", "Unpacked into your music folder and sorted into Artist/Album folders")
                     opacity: 0.8
                 }
             }

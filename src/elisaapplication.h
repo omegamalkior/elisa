@@ -208,6 +208,10 @@ public:
     /// the music in them is then sorted into Artist/Album folders
     Q_INVOKABLE void importArchives(const QList<QUrl> &archives);
 
+    /// Takes songs dragged out of an archive opened in Ark (\a service and \a objectPath
+    /// come with the drag), without unpacking the rest; they are then sorted like dropped archives
+    Q_INVOKABLE void importFromArk(const QString &service, const QString &objectPath);
+
     [[nodiscard]] bool importBusy() const;
 
     [[nodiscard]] qreal importProgress() const;
@@ -365,6 +369,9 @@ protected:
 private:
 
     void setImportState(bool busy, qreal progress, const QString &status, bool done);
+
+    /// setImportState from any thread; when done, the collection is scanned and the bar hides later
+    void reportImport(qreal progress, const QString &status, bool done);
 
 
     void processImportQueues();
