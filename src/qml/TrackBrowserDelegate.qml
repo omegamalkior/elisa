@@ -48,9 +48,10 @@ ItemDelegate {
         }
         return ElisaApplication.adjustedTitle(title, trackNumber)
     }
-    // number in front of the name on album pages: the place in the album instead of
-    // the raw tag number (which can be 2, 12, 16...), and nothing in front of file names
-    readonly property int shownNumber: ElisaApplication.showFileNames ? 0 : (position > 0 ? position : trackNumber)
+    // no number in front of the name: songs are listed in album order (by their
+    // disc and track numbers), so the number adds nothing and was often confusing
+    // when only some of an album's songs are in the library
+    readonly property int shownNumber: 0
 
     readonly property bool imageVisible: delegateLoaded && (detailedView || Kirigami.Settings.isMobile)
 

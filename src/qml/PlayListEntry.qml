@@ -200,7 +200,8 @@ BasePlayListDelegate {
                 }
 
                 Loader {
-                    active: playListEntry.grouped && playListEntry.isValid && !playIcon.visible
+                    // clean names show no track numbers; file names keep them
+                    active: playListEntry.grouped && playListEntry.isValid && !playIcon.visible && ElisaApplication.showFileNames
                     anchors.fill: parent
 
                     sourceComponent: Label {
