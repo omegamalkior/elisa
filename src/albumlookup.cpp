@@ -84,7 +84,7 @@ void saveCache()
 
 // the band's own studio album first; compilations, live records, promos and singles last;
 // the oldest release wins among equals
-QString bestAlbum(const QJsonDocument &answer, const QString &artist, const QString &title)
+QString bestAlbum(const QJsonDocument &answer, const QString &artist, const QString &title, int minScore = 90)
 {
     QString best;
     int bestRank = -1;
@@ -92,7 +92,7 @@ QString bestAlbum(const QJsonDocument &answer, const QString &artist, const QStr
     const auto recordings = answer.object().value(u"recordings"_s).toArray();
     for (const auto &recordingValue : recordings) {
         const auto recording = recordingValue.toObject();
-        if (recording.value(u"score"_s).toInt() < 90
+        if (recording.value(u"score"_s).toInt() < minScore
             || recording.value(u"title"_s).toString().compare(title, Qt::CaseInsensitive) != 0) {
             continue;
         }
@@ -313,6 +313,72 @@ QString AlbumLookup::lookup(const QString &artist, const QString &title, int tim
         saveCache();
     }
     return album;
+}
+
+QHash<QString, QString> AlbumLookup::lookupMany(const QString &artist, const QStringList &titles)
+{
+    QHash<QString, QString> result;
+    QStringList missing;
+    for (const auto &title : titles) {
+        if (title.trimmed().isEmpty() || missing.contains(title, Qt::CaseInsensitive)) {
+            continue;
+        }
+        bool known = false;
+        const auto album = cachedAlbum(artist, title, &known);
+        if (known) {
+            result.insert(title, album);
+        } else {
+            missing.push_back(title);
+        }
+    }
+    if (artist.trimmed().isEmpty() || missing.isEmpty()) {
+        return result;
+    }
+
+    QMutexLocker requestLocker{&requestMutex};
+    constexpr int perRequest = 15;
+    for (int start = 0; start < missing.size(); start += perRequest) {
+        const auto chunk = missing.mid(start, perRequest);
+        QStringList parts;
+        for (const auto &title : chunk) {
+            parts.push_back(u"recording:"_s + quoted(title));
+        }
+        QUrl url = musicBrainzUrl(u"recording"_s, u"artist:"_s + quoted(artist) + u" AND ("_s + parts.join(u" OR "_s) + u')');
+        QUrlQuery query{url};
+        query.addQueryItem(u"limit"_s, u"100"_s);
+        url.setQuery(query);
+
+        bool ok = false;
+        const auto body = httpGet(url, &ok);
+        if (!ok) {
+            continue; // asked again next time
+        }
+        const auto answer = QJsonDocument::fromJson(body);
+        // all 100 places taken: a title not among them may simply not have fitted
+        const bool full = answer.object().value(u"recordings"_s).toArray().size() >= 100;
+        for (const auto &title : chunk) {
+            // scores are shared out among the titles of one search: exact title and artist decide
+            auto album = bestAlbum(answer, artist.trimmed(), title.trimmed(), 0);
+            album.replace(QChar(0x2010), u'-').replace(QChar(0x2011), u'-');
+            if (album.isEmpty() && full) {
+                continue;
+            }
+            result.insert(title, album);
+            QMutexLocker locker{&cacheMutex};
+            cache.insert(keyOf(artist, title), album);
+        }
+        QMutexLocker locker{&cacheMutex};
+        saveCache();
+    }
+    requestLocker.unlock();
+
+    // titles a full answer may have crowded out: one by one
+    for (const auto &title : std::as_const(missing)) {
+        if (!result.contains(title)) {
+            result.insert(title, lookup(artist, title));
+        }
+    }
+    return result;
 }
 
 void AlbumLookup::requestInBackground(const QString &artist, const QString &title, const QUrl &file)

@@ -1057,50 +1057,95 @@ QString importDestination()
     return destination;
 }
 
-// sorts the songs of \a imported (files or folders inside \a destination) into
-// Artist/Album folders, following the songs whose tags are read; returns how many songs
-int sortIntoAlbumFolders(const QString &destination, const QStringList &imported, const QSet<QUrl> &hidden, const ImportReport &report)
+// Reads the tags of every song in \a items once, then asks MusicBrainz for the albums
+// that are missing, in a few requests per artist; returns a TagReader for
+// MusicOrganizer::organize that answers from that and reports what it sorts.
+// Progress: reading tags 0-35 %, looking up albums 35-65 %, sorting 65-100 %.
+MusicOrganizer::TagReader prepareTags(const QStringList &items, const QSet<QUrl> &hidden, const ImportReport &report)
 {
+    struct Song {
+        MusicOrganizer::SongTags tags;
+        QString title;
+    };
+    auto songs = std::make_shared<QHash<QString, Song>>();
     FileScanner scanner;
-    int total = 0;
-    for (const auto &item : imported) {
+
+    QStringList files;
+    for (const auto &item : items) {
         if (QFileInfo{item}.isFile()) {
-            if (scanner.shouldScanFile(item)) {
-                ++total;
-            }
+            files.push_back(item);
             continue;
         }
         QDirIterator it{item, QDir::Files, QDirIterator::Subdirectories};
         while (it.hasNext()) {
-            if (scanner.shouldScanFile(it.next())) {
-                ++total;
-            }
+            files.push_back(it.next());
         }
     }
+    files.erase(std::remove_if(files.begin(), files.end(), [&](const QString &file) {
+        return hidden.contains(QUrl::fromLocalFile(file)) || !scanner.shouldScanFile(file);
+    }), files.end());
+    const auto total = files.size();
 
-    int read = 0;
-    const MusicOrganizer::TagReader readTags = [&](const QString &songFile) {
-        MusicOrganizer::SongTags tags;
-        const bool counted = scanner.shouldScanFile(songFile);
-        if (counted) {
-            ++read;
-            report(total > 0 ? std::min(1.0, static_cast<qreal>(read) / total) : -1.0,
-                   i18nc("@info:progress %1 number, %2 count", "Sorting into Artist/Album folders (%1 of %2)…", std::min(read, total), total), false);
+    // 1. tags
+    QHash<QString, QStringList> missingByArtist;
+    for (int i = 0; i < total; ++i) {
+        const auto &file = files.at(i);
+        report(0.35 * i / std::max<qsizetype>(total, 1),
+               i18nc("@info:progress %1 file name, %2 number, %3 count", "Reading tags: %1 (%2 of %3)", QFileInfo{file}.fileName(), i + 1, total), false);
+        const auto track = scanner.scanOneFile(QUrl::fromLocalFile(file));
+        Song song;
+        song.tags.isSong = track.isValid();
+        song.tags.artist = track.artist();
+        song.tags.albumArtist = track.albumArtist();
+        song.tags.album = track.album();
+        song.title = track.title();
+        const auto artist = song.tags.albumArtist.isEmpty() ? song.tags.artist : song.tags.albumArtist;
+        if (song.tags.isSong && song.tags.album.trimmed().isEmpty() && !artist.isEmpty() && !song.title.isEmpty()) {
+            missingByArtist[artist].push_back(song.title);
         }
-        if (hidden.contains(QUrl::fromLocalFile(songFile)) || !counted) {
-            return tags;
+        songs->insert(file, song);
+    }
+
+    // 2. missing albums, all songs of an artist together
+    int asked = 0;
+    const auto artists = missingByArtist.keys();
+    for (const auto &artist : artists) {
+        const auto &titles = missingByArtist[artist];
+        report(0.35 + 0.30 * asked / std::max<qsizetype>(artists.size(), 1),
+               i18ncp("@info:progress %1 artist", "Looking up albums: %2 (%1 song)…", "Looking up albums: %2 (%1 songs)…", titles.size(), artist), false);
+        const auto albums = AlbumLookup::instance()->lookupMany(artist, titles);
+        for (auto it = songs->begin(); it != songs->end(); ++it) {
+            auto &song = it.value();
+            const auto songArtist = song.tags.albumArtist.isEmpty() ? song.tags.artist : song.tags.albumArtist;
+            if (song.tags.album.trimmed().isEmpty() && songArtist == artist) {
+                song.tags.album = albums.value(song.title);
+            }
         }
-        const auto track = scanner.scanOneFile(QUrl::fromLocalFile(songFile));
-        tags.isSong = track.isValid();
-        tags.artist = track.artist();
-        tags.albumArtist = track.albumArtist();
-        tags.album = track.album();
-        if (tags.album.trimmed().isEmpty() && tags.isSong) {
-            tags.album = AlbumLookup::instance()->lookup(tags.albumArtist.isEmpty() ? tags.artist : tags.albumArtist, track.title());
+        ++asked;
+    }
+
+    // 3. sorting: the organizer asks for each file
+    auto sorted = std::make_shared<int>(0);
+    return [songs, sorted, total, report](const QString &file) {
+        const auto it = songs->constFind(file);
+        if (it == songs->cend()) {
+            return MusicOrganizer::SongTags{}; // covers, booklets, hidden songs
         }
-        return tags;
+        ++*sorted;
+        const auto &song = it.value();
+        const auto artist = song.tags.albumArtist.isEmpty() ? song.tags.artist : song.tags.albumArtist;
+        const auto name = artist.isEmpty() ? QFileInfo{file}.fileName() : artist + u" – "_s + song.title;
+        report(0.65 + 0.35 * *sorted / std::max<qsizetype>(total, 1),
+               i18nc("@info:progress %1 artist and song, %2 number, %3 count", "Sorting: %1 (%2 of %3)", name, std::min<qsizetype>(*sorted, total), total), false);
+        return song.tags;
     };
-    report(0, i18nc("@info:progress", "Sorting into Artist/Album folders…"), false);
+}
+
+// sorts the songs of \a imported (files or folders inside \a destination) into
+// Artist/Album folders; returns how many songs
+int sortIntoAlbumFolders(const QString &destination, const QStringList &imported, const QSet<QUrl> &hidden, const ImportReport &report)
+{
+    const auto readTags = prepareTags(imported, hidden, report);
     const auto result = MusicOrganizer::organize(destination, imported, readTags);
     return result.moved + result.alreadyInPlace;
 }
@@ -1446,31 +1491,27 @@ void ElisaApplication::sortInBackground(const QList<std::pair<QString, QStringLi
     });
     // hidden songs stay where they are, so they stay hidden
     const auto hidden = d->mBlacklist->hiddenFiles();
-    watcher->setFuture(QtConcurrent::run([work, hidden] {
-        FileScanner scanner;
-        const MusicOrganizer::TagReader readTags = [&scanner, &hidden](const QString &file) {
-            MusicOrganizer::SongTags tags;
-            if (hidden.contains(QUrl::fromLocalFile(file)) || !scanner.shouldScanFile(file)) {
-                return tags;
-            }
-            const auto track = scanner.scanOneFile(QUrl::fromLocalFile(file));
-            tags.isSong = track.isValid();
-            tags.artist = track.artist();
-            tags.albumArtist = track.albumArtist();
-            tags.album = track.album();
-            if (tags.album.trimmed().isEmpty() && tags.isSong) {
-                tags.album = AlbumLookup::instance()->lookup(tags.albumArtist.isEmpty() ? tags.artist : tags.albumArtist, track.title());
-            }
-            return tags;
-        };
-
+    setImportState(true, 0, i18nc("@info:progress", "Reading tags…"), false);
+    const ImportReport report = [this](qreal progress, const QString &status, bool done) {
+        if (done) {
+            reportImport(progress, status, true);
+        } else {
+            // the bar only; the collection scan comes with the "finished" handler
+            QMetaObject::invokeMethod(this, [this, progress, status] {
+                setImportState(true, progress, status, false);
+            }, Qt::QueuedConnection);
+        }
+    };
+    watcher->setFuture(QtConcurrent::run([work, hidden, report] {
         MusicOrganizer::Result total;
         for (const auto &[root, items] : work) {
+            const auto readTags = prepareTags(items, hidden, report);
             const auto result = MusicOrganizer::organize(root, items, readTags);
             total.moved += result.moved;
             total.alreadyInPlace += result.alreadyInPlace;
             total.failed += result.failed;
         }
+        report(1.0, i18ncp("@info:status", "Done: %1 song sorted into Artist/Album folders", "Done: %1 songs sorted into Artist/Album folders", total.moved), true);
         return total;
     }));
 }

@@ -12,6 +12,8 @@
 #include <QObject>
 #include <QString>
 #include <QUrl>
+#include <QHash>
+#include <QStringList>
 
 /**
  * The album of a song that has none in its tags, from MusicBrainz (musicbrainz.org),
@@ -33,6 +35,10 @@ public:
 
     /// Asks MusicBrainz now and waits (for worker threads: sorting dropped music)
     QString lookup(const QString &artist, const QString &title, int timeoutMs = 10000);
+
+    /// Albums for many songs of one artist, a few MusicBrainz requests for all of them
+    /// (up to 15 titles per request); answers are cached like lookup()'s. Waits.
+    QHash<QString, QString> lookupMany(const QString &artist, const QStringList &titles);
 
     /// Asks MusicBrainz in the background; albumFound is emitted for \a file when found
     void requestInBackground(const QString &artist, const QString &title, const QUrl &file);
