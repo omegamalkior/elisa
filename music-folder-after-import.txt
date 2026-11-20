@@ -1,0 +1,21 @@
+/home/runner/Music
+/home/runner/Music/Daft Punk
+/home/runner/Music/Daft Punk/Random Access Memories
+/home/runner/Music/Daft Punk/Random Access Memories/01 Get Lucky.mp3
+/home/runner/Music/Daft Punk/Random Access Memories/02 Contact.mp3
+/home/runner/Music/Imported LP
+/home/runner/Music/Imported LP/01 Zip Song 1.mp3
+/home/runner/Music/Imported LP/02 Zip Song 2.mp3
+/home/runner/Music/Loose Import.mp3
+/home/runner/Music/Solo Guy
+/home/runner/Music/Solo Guy/Loose Track
+/home/runner/Music/Solo Guy/Loose Track/01 Alone.mp3
+/home/runner/Music/Test Band
+/home/runner/Music/Test Band/Human
+/home/runner/Music/Test Band/Human/01 Human Race.mp3
+/home/runner/Music/Test Band/Human/12 The Real You.mp3
+/home/runner/Music/Test Band/Human/16. Let You Down (Live).mp3
+/home/runner/Music/Various
+/home/runner/Music/Various/Now 99
+/home/runner/Music/Various/Now 99/01 Happy.mp3
+/home/runner/Music/Various/Now 99/02 One More Time.mp3

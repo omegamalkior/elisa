@@ -1,0 +1,20 @@
+qt.scenegraph.general: Creating QRhi with backend OpenGL for window 0x1ebfcdb0 (wflags 0x1)
+  Prefer software device: 0
+qt.rhi.general: Created OpenGL context QSurfaceFormat(version 3.3, options QFlags<QSurfaceFormat::FormatOption>(DeprecatedFunctions), depthBufferSize 24, redBufferSize 8, greenBufferSize 8, blueBufferSize 8, alphaBufferSize 0, stencilBufferSize 8, samples -1, swapBehavior QSurfaceFormat::DoubleBuffer, swapInterval 1, colorSpace QColorSpace(), profile  QSurfaceFormat::CompatibilityProfile)
+qt.rhi.general: OpenGL VENDOR: Mesa RENDERER: softpipe VERSION: 3.3 (Compatibility Profile) Mesa 26.2.7-arch1.1
+qt.scenegraph.general: Created QRhi 0x7f5f10173380 for window 0x1ebfcdb0
+qt.scenegraph.general: rhi texture atlas dimensions: 1024x1024
+qt.scenegraph.general: Creating QRhi with backend OpenGL for window 0x2c3bb930 (wflags 0x3)
+  Prefer software device: 0
+qt.rhi.general: Created OpenGL context QSurfaceFormat(version 3.3, options QFlags<QSurfaceFormat::FormatOption>(DeprecatedFunctions), depthBufferSize 24, redBufferSize 8, greenBufferSize 8, blueBufferSize 8, alphaBufferSize 0, stencilBufferSize 8, samples -1, swapBehavior QSurfaceFormat::DoubleBuffer, swapInterval 1, colorSpace QColorSpace(), profile  QSurfaceFormat::CompatibilityProfile)
+qt.rhi.general: OpenGL VENDOR: Mesa RENDERER: softpipe VERSION: 3.3 (Compatibility Profile) Mesa 26.2.7-arch1.1
+qt.scenegraph.general: Created QRhi 0x2c1b8410 for window 0x2c3bb930
+qt.scenegraph.general: rhi texture atlas dimensions: 1024x1024
+qt.scenegraph.general: Creating QRhi with backend OpenGL for window 0x2ec808c0 (wflags 0x3)
+  Prefer software device: 0
+qt.rhi.general: Created OpenGL context QSurfaceFormat(version 3.3, options QFlags<QSurfaceFormat::FormatOption>(DeprecatedFunctions), depthBufferSize 24, redBufferSize 8, greenBufferSize 8, blueBufferSize 8, alphaBufferSize 0, stencilBufferSize 8, samples -1, swapBehavior QSurfaceFormat::DoubleBuffer, swapInterval 1, colorSpace QColorSpace(), profile  QSurfaceFormat::CompatibilityProfile)
+qt.rhi.general: OpenGL VENDOR: Mesa RENDERER: softpipe VERSION: 3.3 (Compatibility Profile) Mesa 26.2.7-arch1.1
+qt.scenegraph.general: Created QRhi 0x7f5efc002f60 for window 0x2ec808c0
+qt.scenegraph.general: rhi texture atlas dimensions: 1024x1024
+qt.scenegraph.general: Creating QRhi with backend OpenGL for window 0x2e93ebf0 (wflags 0x3)
+  Prefer software device: 0

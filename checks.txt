@@ -1,0 +1,28 @@
+PASS Settings: unticking the album artist option is saved
+PASS Settings: Cancel changes nothing
+PASS file manager action was installed at startup
+PASS right-click > Show File Names is remembered
+PASS right-click > Show Adjusted Names switches back
+PASS hidden song is in the hidden list
+PASS hidden song file is still on disk
+PASS deleted song file is gone from disk
+PASS other songs are still on disk
+FAIL hidden album is in the hidden list
+PASS switching an entry off keeps it in the list, not hidden
+PASS removing an entry leaves one entry
+PASS the removed entry was the album, the song entry stays switched off
+PASS import: files left the source folder
+PASS import: the archive is unpacked into the Music folder
+PASS import: the single song is in the Music folder
+PASS changes in the Music folder do not start a sort (only drops on Elisa do)
+PASS the existing library was left alone
+PASS import of a folder while Elisa is closed
+PASS folder imported while closed is not sorted at startup
+Elisa update check: this is build 1 - latest published build is 37 - can install by itself: true
+PASS update check ran at startup and saw the published build
+PASS crossfade: the next song starts while the first one fades out
+PASS crossfade: the fade finishes
+PASS crossfade: the first song is not cut by a restart of song 2
+PASS drop: the archive is unpacked and sorted into Artist/Album folders
+PASS drop: no unsorted copy or temporary folder is left
+PASS drop: the archive left the Downloads folder

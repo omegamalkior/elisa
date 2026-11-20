@@ -1,0 +1,31 @@
+/home/runner/work/elisa/elisa/results/run1.log:Failed to open VDPAU backend libvdpau_nvidia.so: cannot open shared object file: No such file or directory
+/home/runner/work/elisa/elisa/results/run1.log:qt.multimedia.pipewire.registry: Failed to connect to pipewire instance "Host is down"
+/home/runner/work/elisa/elisa/results/run1.log:PulseAudioService: pa_context_connect() failed
+/home/runner/work/elisa/elisa/results/run1.log:Elisa update check failed: Error transferring https://api.github.com/repos/omegamalkior/elisa/releases/latest - server replied with status code 403
+/home/runner/work/elisa/elisa/results/run1.log:qrc:/qt/qml/org/kde/elisa/qml/ImageWithFallback.qml:60:5: QML Image: SSL handshake failed: The host name did not match any of the valid hosts for this certificate
+/home/runner/work/elisa/elisa/results/run1.log:qrc:/qt/qml/org/kde/elisa/qml/ImageWithFallback.qml:60:5: QML Image: Error transferring https://c64radio.com/images/coollogo_com-24210747.png - server replied with status code 404
+/home/runner/work/elisa/elisa/results/run1.log:qrc:/qt/qml/org/kde/elisa/qml/ConfigurationDialog.qml:32:5: QML Shortcut: Shortcut: Only binding to one of multiple key bindings associated with 70. Use 'sequences: [ <key> ]' to bind to all of them.
+/home/runner/work/elisa/elisa/results/run1.log:qrc:/qt/qml/org/kde/elisa/qml/ConfigurationDialog.qml:32:5: QML Shortcut: Shortcut: Only binding to one of multiple key bindings associated with 70. Use 'sequences: [ <key> ]' to bind to all of them.
+/home/runner/work/elisa/elisa/results/run1.log:qrc:/qt/qml/org/kde/elisa/qml/ConfigurationDialog.qml:32:5: QML Shortcut: Shortcut: Only binding to one of multiple key bindings associated with 70. Use 'sequences: [ <key> ]' to bind to all of them.
+/home/runner/work/elisa/elisa/results/run2.log:Failed to open VDPAU backend libvdpau_nvidia.so: cannot open shared object file: No such file or directory
+/home/runner/work/elisa/elisa/results/run2.log:qt.multimedia.pipewire.registry: Failed to connect to pipewire instance "Host is down"
+/home/runner/work/elisa/elisa/results/run2.log:PulseAudioService: pa_context_connect() failed
+/home/runner/work/elisa/elisa/results/run2.log:Elisa update check failed: Error transferring https://api.github.com/repos/omegamalkior/elisa/releases/latest - server replied with status code 403
+/home/runner/work/elisa/elisa/results/run3.log:Failed to open VDPAU backend libvdpau_nvidia.so: cannot open shared object file: No such file or directory
+/home/runner/work/elisa/elisa/results/run3.log:qt.multimedia.pipewire.registry: Failed to connect to pipewire instance "Host is down"
+/home/runner/work/elisa/elisa/results/run3.log:PulseAudioService: pa_context_connect() failed
+/home/runner/work/elisa/elisa/results/run3.log:AlbumLookup: no answer from "musicbrainz.org" 503 "Error transferring https://musicbrainz.org/ws/2/release-group?query=releasegroup:%22Human%22 AND artist:%22Test Band%22&fmt=json - server replied with status code 503"
+/home/runner/work/elisa/elisa/results/run3.log:Elisa update check failed: Error transferring https://api.github.com/repos/omegamalkior/elisa/releases/latest - server replied with status code 403
+/home/runner/work/elisa/elisa/results/run3.log:AlbumLookup: no answer from "musicbrainz.org" 503 "Error transferring https://musicbrainz.org/ws/2/artist?query=artist:%22Daft Punk feat. Pharrell%22&fmt=json - server replied with status code 503"
+/home/runner/work/elisa/elisa/results/run3.log:qrc:/qt/qml/org/kde/elisa/qml/ConfigurationDialog.qml:32:5: QML Shortcut: Shortcut: Only binding to one of multiple key bindings associated with 70. Use 'sequences: [ <key> ]' to bind to all of them.
+/home/runner/work/elisa/elisa/results/run3.log:AlbumLookup: no answer from "musicbrainz.org" 503 "Error transferring https://musicbrainz.org/ws/2/release-group?query=releasegroup:%22Imported LP%22 AND artist:%22Zip Band%22&fmt=json - server replied with status code 503"
+/home/runner/work/elisa/elisa/results/run4.log:Failed to open VDPAU backend libvdpau_nvidia.so: cannot open shared object file: No such file or directory
+/home/runner/work/elisa/elisa/results/run4.log:qt.multimedia.pipewire.registry: Failed to connect to pipewire instance "Host is down"
+/home/runner/work/elisa/elisa/results/run4.log:PulseAudioService: pa_context_connect() failed
+/home/runner/work/elisa/elisa/results/run4.log:qrc:/qt/qml/org/kde/elisa/qml/ImageWithFallback.qml:60:5: QML Image: Error decoding: file:///home/runner/Music/Closed EP/cover.jpg: Unsupported image format
+/home/runner/work/elisa/elisa/results/run4.log:qrc:/qt/qml/org/kde/elisa/qml/ImageWithFallback.qml:60:5: QML Image: Error decoding: file:///home/runner/Music/Closed EP/cover.jpg: Unsupported image format
+/home/runner/work/elisa/elisa/results/run5.log:Failed to open VDPAU backend libvdpau_nvidia.so: cannot open shared object file: No such file or directory
+/home/runner/work/elisa/elisa/results/run5.log:qt.multimedia.pipewire.registry: Failed to connect to pipewire instance "Host is down"
+/home/runner/work/elisa/elisa/results/run5.log:PulseAudioService: pa_context_connect() failed
+/home/runner/work/elisa/elisa/results/run5.log:qrc:/qt/qml/org/kde/elisa/qml/ConfigurationDialog.qml:32:5: QML Shortcut: Shortcut: Only binding to one of multiple key bindings associated with 70. Use 'sequences: [ <key> ]' to bind to all of them.
+/home/runner/work/elisa/elisa/results/run5.log:AlbumLookup: no answer from "musicbrainz.org" 503 "Error transferring https://musicbrainz.org/ws/2/artist?query=artist:%22Drop Band%22&fmt=json - server replied with status code 503"

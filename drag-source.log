@@ -1,0 +1,4 @@
+/home/runner/work/elisa/elisa/ci/drag-source.py:6: PyGIWarning: Gdk was imported without specifying a version first. Use gi.require_version('Gdk', '3.0') before import to ensure that the right version gets loaded.
+  from gi.repository import Gdk, Gio, Gtk
+
+(drag-source.py:5802): dbind-WARNING **: 07:57:05.513: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files

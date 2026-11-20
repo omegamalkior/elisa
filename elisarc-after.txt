@@ -1,0 +1,14 @@
+[ElisaFileIndexer]
+RootPath=/home/runner/Music
+
+[PlayerSettings]
+CrossfadeSeconds=3
+SortImportedMusic=true
+UseAlbumArtistInArtistsView=true
+
+[UiSettings]
+ColorScheme=BreezeDark
+
+[Views]
+InitialView=AllArtists
+EmbeddedView=NoView

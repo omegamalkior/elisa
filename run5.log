@@ -1,0 +1,102 @@
+qt.scenegraph.general: threaded render loop
+qt.scenegraph.general: Using sg animation driver
+qt.scenegraph.general: Animation Driver: using vsync: 16.67 ms
+org.kde.elisa.views: ViewManager::openView 3 0 ViewsListData(0x44551a0)
+org.kde.elisa.views: ViewManager::openView changing view 3
+org.kde.elisa.views: ViewManager::openViewFromData 0
+org.kde.elisa.views: ViewManager::openViewFromData ViewManager::GridView ElisaUtils::NoFilter 1 "Artists" "" QUrl("image://icon/view-media-artist") ElisaUtils::Artist ViewManager::GenericDataModel QUrl("image://icon/view-media-artist") QMap() ViewManager::ViewHideRating ViewManager::DelegateWithoutSecondaryText
+org.kde.elisa.indexers.manager: Local file system indexer is inactive
+qt.sql.sqlite: Unsupported option 'foreign_keys = ON'
+qt.sql.sqlite: Unsupported option 'locking_mode = EXCLUSIVE'
+qt.multimedia.ffmpeg: Using Qt multimedia with FFmpeg version n9.1 GPL version 3 or later
+Failed to open VDPAU backend libvdpau_nvidia.so: cannot open shared object file: No such file or directory
+qt.multimedia.pipewire.registry: Failed to connect to pipewire instance "Host is down"
+PulseAudioService: pa_context_connect() failed
+org.kde.elisa.player.qtMultimedia: AudioWrapper::setVolume 100
+org.kde.elisa.indexers.manager: Local file system indexer is active
+org.kde.elisa.indexers.manager: trigger init of local file indexer
+qt.scenegraph.general: Animation Driver: using vsync: 16.67 ms
+qt.scenegraph.general: Creating QRhi with backend OpenGL for window 0x42666a0 (wflags 0x1)
+  Graphics API debug/validation layers: 0
+  Debug markers: 0
+  Timestamps: 0
+  Prefer software device: 0
+  Shader/pipeline cache collection: 1
+qt.rhi.general: Created OpenGL context QSurfaceFormat(version 3.3, options QFlags<QSurfaceFormat::FormatOption>(DeprecatedFunctions), depthBufferSize 24, redBufferSize 8, greenBufferSize 8, blueBufferSize 8, alphaBufferSize 0, stencilBufferSize 8, samples -1, swapBehavior QSurfaceFormat::DoubleBuffer, swapInterval 1, colorSpace QColorSpace(), profile  QSurfaceFormat::CompatibilityProfile)
+qt.rhi.general: OpenGL VENDOR: Mesa RENDERER: softpipe VERSION: 3.3 (Compatibility Profile) Mesa 26.2.7-arch1.1
+qt.scenegraph.general: Created QRhi 0x7f35fc0f1c30 for window 0x42666a0
+qt.scenegraph.general: MSAA sample count for the swapchain is 1. Alpha channel requested = no.
+org.kde.elisa.database: artistsAdded 1
+org.kde.elisa.database: albumsAdded 1
+org.kde.elisa.database: tracksAdded 1
+org.kde.elisa.database: tracksAdded 1
+org.kde.elisa.views: embedded cover cache miss "/home/runner/Music/Various/Now 99/02 One More Time.mp3"
+org.kde.elisa.views: embedded cover cache miss "/home/runner/Music/Various/Now 99/02 One More Time.mp3"
+qt.scenegraph.general: rhi texture atlas dimensions: 1024x1024
+qt.scenegraph.general: animation driver switched to timer mode
+qt.scenegraph.general: animation driver switched to timer mode
+Elisa update check: this is build 40 - latest published build is 37 - can install by itself: true
+org.kde.elisa.player.qtMultimedia: AudioWrapper::setSource QUrl("file:///home/runner/Music/Crossfade Test/Fade Album/01 Fade Song 1.mp3")
+org.kde.elisa.player.qtMultimedia: AudioWrapper::mediaStatusChanged QMediaPlayer::LoadingMedia
+Input #0, mp3, from '/home/runner/Music/Crossfade Test/Fade Album/01 Fade Song 1.mp3':
+  Metadata:
+    title           : Fade Song 1
+    artist          : Crossfade Test
+    album           : Fade Album
+    track           : 1
+    encoder         : Lavf60.16.100
+  Duration: 00:00:30.00, start: 0.025057, bitrate: 64 kb/s
+  Stream #0:0: Audio: mp3 (mp3float), 44100 Hz, mono, fltp, 64 kb/s, start 0.025057
+org.kde.elisa.player.qtMultimedia: AudioWrapper::mediaStatusChanged QMediaPlayer::LoadedMedia
+org.kde.elisa.player.qtMultimedia: AudioWrapper::play
+org.kde.elisa.player.qtMultimedia: AudioWrapper::mediaStatusChanged QMediaPlayer::BufferingMedia
+org.kde.elisa.player.qtMultimedia: AudioWrapper::playerStateChanged QMediaPlayer::PlayingState
+org.kde.elisa.player.qtMultimedia: AudioWrapper::mediaStatusChanged QMediaPlayer::BufferedMedia
+No audio device detected
+org.kde.elisa.views: ViewManager::openView 0 1 ViewsListData(0x44551a0)
+org.kde.elisa.views: ViewManager::openView changing view 0
+org.kde.elisa.views: ViewManager::openViewFromData 0
+org.kde.elisa.views: ViewManager::openViewFromData unknown model type
+org.kde.elisa.views: ViewManager::openViewFromData ViewManager::ContextView 1 "Now Playing" QUrl("image://icon/view-media-lyrics")
+org.kde.elisa.player.qtMultimedia: AudioWrapper::startCrossfade QUrl("file:///home/runner/Music/Crossfade Test/Fade Album/02 Fade Song 2.mp3") 2910
+Input #0, mp3, from '/home/runner/Music/Crossfade Test/Fade Album/02 Fade Song 2.mp3':
+  Metadata:
+    title           : Fade Song 2
+    artist          : Crossfade Test
+    album           : Fade Album
+    track           : 2
+    encoder         : Lavf60.16.100
+  Duration: 00:00:30.00, start: 0.025057, bitrate: 64 kb/s
+  Stream #0:0: Audio: mp3 (mp3float), 44100 Hz, mono, fltp, 64 kb/s, start 0.025057
+org.kde.elisa.player.qtMultimedia: AudioWrapper::setSource QUrl("file:///home/runner/Music/Crossfade Test/Fade Album/02 Fade Song 2.mp3")
+org.kde.elisa.player.qtMultimedia: AudioWrapper::mediaStatusChanged QMediaPlayer::LoadedMedia
+org.kde.elisa.player.qtMultimedia: AudioWrapper::mediaStatusChanged QMediaPlayer::BufferingMedia
+org.kde.elisa.player.qtMultimedia: AudioWrapper::playerStateChanged QMediaPlayer::PlayingState
+No audio device detected
+org.kde.elisa.player.qtMultimedia: AudioWrapper::mediaStatusChanged QMediaPlayer::BufferedMedia
+org.kde.elisa.player.qtMultimedia: AudioWrapper::finishCrossfade
+org.kde.elisa.player.qtMultimedia: AudioWrapper::pause
+org.kde.elisa.player.qtMultimedia: AudioWrapper::playerStateChanged QMediaPlayer::PausedState
+qrc:/qt/qml/org/kde/elisa/qml/ConfigurationDialog.qml:32:5: QML Shortcut: Shortcut: Only binding to one of multiple key bindings associated with 70. Use 'sequences: [ <key> ]' to bind to all of them.
+qt.scenegraph.general: Animation Driver: using vsync: 16.67 ms
+qt.scenegraph.general: Creating QRhi with backend OpenGL for window 0x11b0d3e0 (wflags 0x3)
+  Graphics API debug/validation layers: 0
+  Debug markers: 0
+  Timestamps: 0
+  Prefer software device: 0
+  Shader/pipeline cache collection: 0
+qt.rhi.general: Created OpenGL context QSurfaceFormat(version 3.3, options QFlags<QSurfaceFormat::FormatOption>(DeprecatedFunctions), depthBufferSize 24, redBufferSize 8, greenBufferSize 8, blueBufferSize 8, alphaBufferSize 0, stencilBufferSize 8, samples -1, swapBehavior QSurfaceFormat::DoubleBuffer, swapInterval 1, colorSpace QColorSpace(), profile  QSurfaceFormat::CompatibilityProfile)
+qt.rhi.general: OpenGL VENDOR: Mesa RENDERER: softpipe VERSION: 3.3 (Compatibility Profile) Mesa 26.2.7-arch1.1
+qt.scenegraph.general: Created QRhi 0x10886ce0 for window 0x11b0d3e0
+qt.scenegraph.general: MSAA sample count for the swapchain is 1. Alpha channel requested = no.
+qt.scenegraph.general: rhi texture atlas dimensions: 1024x1024
+org.kde.elisa.database: artistsAdded 1
+org.kde.elisa.database: albumsAdded 1
+org.kde.elisa.database: tracksAdded 3
+AlbumLookup: no answer from "musicbrainz.org" 503 "Error transferring https://musicbrainz.org/ws/2/artist?query=artist:%22Drop Band%22&fmt=json - server replied with status code 503"
+org.kde.elisa.views: ViewManager::openView 3 1 ViewsListData(0x44551a0)
+org.kde.elisa.views: ViewManager::openView changing view 3
+org.kde.elisa.views: ViewManager::openViewFromData 0
+org.kde.elisa.views: ViewManager::openViewFromData ViewManager::GridView ElisaUtils::NoFilter 1 "Artists" "" QUrl("image://icon/view-media-artist") ElisaUtils::Artist ViewManager::GenericDataModel QUrl("image://icon/view-media-artist") QMap() ViewManager::ViewHideRating ViewManager::DelegateWithoutSecondaryText
+org.kde.elisa.views: embedded cover cache hit "/home/runner/Music/Various/Now 99/02 One More Time.mp3"
+org.kde.elisa.views: embedded cover cache hit "/home/runner/Music/Various/Now 99/02 One More Time.mp3"
