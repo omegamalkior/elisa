@@ -1,0 +1,23 @@
+{
+    "entries": [
+        {
+            "album": false,
+            "artist": "Test Band",
+            "files": [
+                "file:///home/runner/Music/Test Band/Human/01 Human Race.mp3"
+            ],
+            "hidden": true,
+            "title": "Human Race"
+        },
+        {
+            "album": true,
+            "artist": "Test Band",
+            "files": [
+                "file:///home/runner/Music/Test Band/Human/12 The Real You.mp3",
+                "file:///home/runner/Music/Test Band/Human/16. Let You Down (Live).mp3"
+            ],
+            "hidden": true,
+            "title": "Human"
+        }
+    ]
+}

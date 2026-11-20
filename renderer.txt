@@ -1,0 +1,20 @@
+qt.scenegraph.general: Creating QRhi with backend OpenGL for window 0x558b56b59800 (wflags 0x1)
+  Prefer software device: 0
+qt.rhi.general: Created OpenGL context QSurfaceFormat(version 4.6, options QFlags<QSurfaceFormat::FormatOption>(DeprecatedFunctions), depthBufferSize 24, redBufferSize 8, greenBufferSize 8, blueBufferSize 8, alphaBufferSize 0, stencilBufferSize 8, samples -1, swapBehavior QSurfaceFormat::DoubleBuffer, swapInterval 1, colorSpace QColorSpace(), profile  QSurfaceFormat::CompatibilityProfile)
+qt.rhi.general: OpenGL VENDOR: Mesa RENDERER: llvmpipe (LLVM 21.1.8, 256 bits) VERSION: 4.6 (Compatibility Profile) Mesa 26.2.7 (git-b69adc2adf)
+qt.scenegraph.general: Created QRhi 0x7f4e5c001be0 for window 0x558b56b59800
+qt.scenegraph.general: rhi texture atlas dimensions: 1024x1024
+qt.scenegraph.general: Creating QRhi with backend OpenGL for window 0x558b582942e0 (wflags 0x3)
+  Prefer software device: 0
+qt.rhi.general: Created OpenGL context QSurfaceFormat(version 4.6, options QFlags<QSurfaceFormat::FormatOption>(DeprecatedFunctions), depthBufferSize 24, redBufferSize 8, greenBufferSize 8, blueBufferSize 8, alphaBufferSize 0, stencilBufferSize 8, samples -1, swapBehavior QSurfaceFormat::DoubleBuffer, swapInterval 1, colorSpace QColorSpace(), profile  QSurfaceFormat::CompatibilityProfile)
+qt.rhi.general: OpenGL VENDOR: Mesa RENDERER: llvmpipe (LLVM 21.1.8, 256 bits) VERSION: 4.6 (Compatibility Profile) Mesa 26.2.7 (git-b69adc2adf)
+qt.scenegraph.general: Created QRhi 0x7f4dfc005940 for window 0x558b582942e0
+qt.scenegraph.general: rhi texture atlas dimensions: 1024x1024
+qt.scenegraph.general: Creating QRhi with backend OpenGL for window 0x558b5751a8a0 (wflags 0x3)
+  Prefer software device: 0
+qt.rhi.general: Created OpenGL context QSurfaceFormat(version 4.6, options QFlags<QSurfaceFormat::FormatOption>(DeprecatedFunctions), depthBufferSize 24, redBufferSize 8, greenBufferSize 8, blueBufferSize 8, alphaBufferSize 0, stencilBufferSize 8, samples -1, swapBehavior QSurfaceFormat::DoubleBuffer, swapInterval 1, colorSpace QColorSpace(), profile  QSurfaceFormat::CompatibilityProfile)
+qt.rhi.general: OpenGL VENDOR: Mesa RENDERER: llvmpipe (LLVM 21.1.8, 256 bits) VERSION: 4.6 (Compatibility Profile) Mesa 26.2.7 (git-b69adc2adf)
+qt.scenegraph.general: Created QRhi 0x7f4dec016880 for window 0x558b5751a8a0
+qt.scenegraph.general: rhi texture atlas dimensions: 1024x1024
+qt.scenegraph.general: Creating QRhi with backend OpenGL for window 0x558b5a99c8e0 (wflags 0x3)
+  Prefer software device: 0

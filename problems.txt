@@ -1,0 +1,30 @@
+/home/runner/work/elisa/elisa/results/run1.log:Call to org.freedesktop.portal.Settings.ReadAll failed QDBusError("org.freedesktop.DBus.Error.UnknownMethod", "No such interface “org.freedesktop.portal.Settings” on object at path /org/freedesktop/portal/desktop")
+/home/runner/work/elisa/elisa/results/run1.log:Failed to open VDPAU backend libvdpau_nvidia.so: cannot open shared object file: No such file or directory
+/home/runner/work/elisa/elisa/results/run1.log:Failed to connect to pipewire instance "Host is down"
+/home/runner/work/elisa/elisa/results/run1.log:PulseAudioService: pa_context_connect() failed
+/home/runner/work/elisa/elisa/results/run1.log:Call for getting org.freedesktop.portal.FileChooser version failed QDBusError("org.freedesktop.DBus.Error.InvalidArgs", "No such interface “org.freedesktop.portal.FileChooser”")
+/home/runner/work/elisa/elisa/results/run1.log:qrc:/qt/qml/org/kde/elisa/qml/ImageWithFallback.qml:60:5: QML Image: Error transferring https://c64radio.com/images/coollogo_com-24210747.png - server replied with status code 404
+/home/runner/work/elisa/elisa/results/run1.log:qrc:/qt/qml/org/kde/elisa/qml/ImageWithFallback.qml:60:5: QML Image: SSL handshake failed: The host name did not match any of the valid hosts for this certificate
+/home/runner/work/elisa/elisa/results/run1.log:qrc:/qt/qml/org/kde/elisa/qml/ConfigurationDialog.qml:32:5: QML Shortcut: Shortcut: Only binding to one of multiple key bindings associated with 70. Use 'sequences: [ <key> ]' to bind to all of them.
+/home/runner/work/elisa/elisa/results/run1.log:qrc:/qt/qml/org/kde/elisa/qml/ConfigurationDialog.qml:32:5: QML Shortcut: Shortcut: Only binding to one of multiple key bindings associated with 70. Use 'sequences: [ <key> ]' to bind to all of them.
+/home/runner/work/elisa/elisa/results/run1.log:qrc:/qt/qml/org/kde/elisa/qml/ConfigurationDialog.qml:32:5: QML Shortcut: Shortcut: Only binding to one of multiple key bindings associated with 70. Use 'sequences: [ <key> ]' to bind to all of them.
+/home/runner/work/elisa/elisa/results/run2.log:Call to org.freedesktop.portal.Settings.ReadAll failed QDBusError("org.freedesktop.DBus.Error.UnknownMethod", "No such interface “org.freedesktop.portal.Settings” on object at path /org/freedesktop/portal/desktop")
+/home/runner/work/elisa/elisa/results/run2.log:Failed to open VDPAU backend libvdpau_nvidia.so: cannot open shared object file: No such file or directory
+/home/runner/work/elisa/elisa/results/run2.log:Failed to connect to pipewire instance "Host is down"
+/home/runner/work/elisa/elisa/results/run2.log:PulseAudioService: pa_context_connect() failed
+/home/runner/work/elisa/elisa/results/run2.log:Call for getting org.freedesktop.portal.FileChooser version failed QDBusError("org.freedesktop.DBus.Error.InvalidArgs", "No such interface “org.freedesktop.portal.FileChooser”")
+/home/runner/work/elisa/elisa/results/run3.log:Call to org.freedesktop.portal.Settings.ReadAll failed QDBusError("org.freedesktop.DBus.Error.UnknownMethod", "No such interface “org.freedesktop.portal.Settings” on object at path /org/freedesktop/portal/desktop")
+/home/runner/work/elisa/elisa/results/run3.log:Failed to open VDPAU backend libvdpau_nvidia.so: cannot open shared object file: No such file or directory
+/home/runner/work/elisa/elisa/results/run3.log:Failed to connect to pipewire instance "Host is down"
+/home/runner/work/elisa/elisa/results/run3.log:PulseAudioService: pa_context_connect() failed
+/home/runner/work/elisa/elisa/results/run3.log:Call for getting org.freedesktop.portal.FileChooser version failed QDBusError("org.freedesktop.DBus.Error.InvalidArgs", "No such interface “org.freedesktop.portal.FileChooser”")
+/home/runner/work/elisa/elisa/results/run3.log:qrc:/qt/qml/org/kde/elisa/qml/ConfigurationDialog.qml:32:5: QML Shortcut: Shortcut: Only binding to one of multiple key bindings associated with 70. Use 'sequences: [ <key> ]' to bind to all of them.
+/home/runner/work/elisa/elisa/results/run4.log:Call to org.freedesktop.portal.Settings.ReadAll failed QDBusError("org.freedesktop.DBus.Error.UnknownMethod", "No such interface “org.freedesktop.portal.Settings” on object at path /org/freedesktop/portal/desktop")
+/home/runner/work/elisa/elisa/results/run4.log:Failed to open VDPAU backend libvdpau_nvidia.so: cannot open shared object file: No such file or directory
+/home/runner/work/elisa/elisa/results/run4.log:Failed to connect to pipewire instance "Host is down"
+/home/runner/work/elisa/elisa/results/run4.log:PulseAudioService: pa_context_connect() failed
+/home/runner/work/elisa/elisa/results/run4.log:Call for getting org.freedesktop.portal.FileChooser version failed QDBusError("org.freedesktop.DBus.Error.InvalidArgs", "No such interface “org.freedesktop.portal.FileChooser”")
+/home/runner/work/elisa/elisa/results/run4.log:qrc:/qt/qml/org/kde/elisa/qml/ImageWithFallback.qml:60:5: QML Image: Error decoding: file:///home/runner/Music/Closed EP/cover.jpg: Unsupported image format
+/home/runner/work/elisa/elisa/results/run4.log:qrc:/qt/qml/org/kde/elisa/qml/ImageWithFallback.qml:60:5: QML Image: Error decoding: file:///home/runner/Music/Closed EP/cover.jpg: Unsupported image format
+/home/runner/work/elisa/elisa/results/run4.log:qrc:/qt/qml/org/kde/elisa/qml/ImageWithFallback.qml:60:5: QML Image: Error decoding: file:///home/runner/Music/Night Owl/Closed EP/cover.jpg: Unsupported image format
+/home/runner/work/elisa/elisa/results/run4.log:qrc:/qt/qml/org/kde/elisa/qml/ImageWithFallback.qml:60:5: QML Image: Error decoding: file:///home/runner/Music/Night Owl/Closed EP/cover.jpg: Unsupported image format

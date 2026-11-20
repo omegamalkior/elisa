@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Service
+MimeType=audio/*;inode/directory;application/zip;application/x-7z-compressed;application/vnd.rar;application/x-tar;application/x-compressed-tar;application/x-bzip-compressed-tar;application/x-bzip2-compressed-tar;application/x-xz-compressed-tar;application/x-zstd-compressed-tar;
+Actions=importToMusic
+X-KDE-Priority=TopLevel
+
+[Desktop Action importToMusic]
+Name=Elisa: Import to Music
+Icon=folder-music
+Exec="/home/runner/.local/share/kio/servicemenus/elisa-import-to-music.sh" %F

@@ -1,0 +1,12 @@
+[ElisaFileIndexer]
+RootPath=/home/runner/Music
+
+[PlayerSettings]
+UseAlbumArtistInArtistsView=false
+
+[UiSettings]
+ColorScheme=BreezeDark
+
+[Views]
+EmbeddedView=NoView
+InitialView=AllAlbums
