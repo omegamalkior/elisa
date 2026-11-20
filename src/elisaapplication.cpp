@@ -698,6 +698,34 @@ void ElisaApplication::initializePlayer()
     QObject::connect(d->mMediaPlayListProxyModel.get(), &MediaPlayListProxyModel::requestPlay, d->mAudioControl.get(), &ManageAudioPlayer::requestPlay);
     QObject::connect(d->mMediaPlayListProxyModel.get(), &MediaPlayListProxyModel::playListFinished, d->mAudioControl.get(), &ManageAudioPlayer::playListFinished);
     QObject::connect(d->mMediaPlayListProxyModel.get(), &MediaPlayListProxyModel::currentTrackChanged, d->mAudioControl.get(), &ManageAudioPlayer::setCurrentTrack);
+
+    // songs deleted from the computer: stop if one is playing, take them out of the
+    // playlist, so the header (title, artist, album, cover) no longer shows them
+    QObject::connect(d->mBlacklist.get(), &BlacklistManager::filesDeleted, this, [this](const QList<QUrl> &files) {
+        auto *playlist = d->mMediaPlayListProxyModel.get();
+        if (!playlist) {
+            return;
+        }
+        const auto current = playlist->currentTrackRow();
+        bool currentDeleted = false;
+        QList<int> rows;
+        for (int row = 0; row < playlist->rowCount(); ++row) {
+            const auto url = playlist->index(row, 0).data(MediaPlayList::ResourceRole).toUrl();
+            if (files.contains(url)) {
+                rows.push_back(row);
+                currentDeleted = currentDeleted || row == current;
+            }
+        }
+        if (currentDeleted) {
+            d->mAudioControl->stop();
+            d->mAudioWrapper->stop();
+            d->mAudioWrapper->setSource(QUrl{});
+        }
+        std::sort(rows.begin(), rows.end(), std::greater<int>{});
+        for (const auto row : std::as_const(rows)) {
+            playlist->removeRow(row);
+        }
+    });
     QObject::connect(d->mMediaPlayListProxyModel.get(), &MediaPlayListProxyModel::clearPlayListPlayer, d->mAudioControl.get(), &ManageAudioPlayer::saveForUndoClearPlaylist);
     QObject::connect(d->mMediaPlayListProxyModel.get(), &MediaPlayListProxyModel::undoClearPlayListPlayer, d->mAudioControl.get(), &ManageAudioPlayer::restoreForUndoClearPlaylist);
     QObject::connect(d->mMediaPlayListProxyModel.get(), &MediaPlayListProxyModel::seek, d->mAudioWrapper.get(), &AudioWrapper::seek);

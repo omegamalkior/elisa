@@ -305,6 +305,9 @@ int BlacklistManager::deleteFiles(const QList<QUrl> &files)
         }
     }
 
+    if (!deleted.isEmpty()) {
+        Q_EMIT filesDeleted(deleted);
+    }
     removeFromLibrary(deleted);
 
     return failures;

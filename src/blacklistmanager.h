@@ -102,6 +102,9 @@ Q_SIGNALS:
     /// These files should be read again and added back to the library
     void filesToShowAgain(const QList<QUrl> &files);
 
+    /// Song files that were moved to the trash (or removed): the player lets go of them
+    void filesDeleted(const QList<QUrl> &files);
+
 private:
     [[nodiscard]] QList<QUrl> albumFiles(qulonglong albumId) const;
 
