@@ -616,6 +616,14 @@ void ElisaApplication::initializePlayer()
     QObject::connect(d->mMediaPlayListProxyModel.get(), &MediaPlayListProxyModel::undoClearPlayListPlayer, d->mAudioControl.get(), &ManageAudioPlayer::restoreForUndoClearPlaylist);
     QObject::connect(d->mMediaPlayListProxyModel.get(), &MediaPlayListProxyModel::seek, d->mAudioWrapper.get(), &AudioWrapper::seek);
 
+    // the song after the current one, for crossfading into it
+    auto updateNextSource = [this]() {
+        d->mAudioWrapper->setNextSource(d->mMediaPlayListProxyModel->nextTrack().data(MediaPlayList::ResourceRole).toUrl());
+    };
+    QObject::connect(d->mMediaPlayListProxyModel.get(), &MediaPlayListProxyModel::nextTrackChanged, d->mAudioWrapper.get(), updateNextSource);
+    QObject::connect(d->mMediaPlayListProxyModel.get(), &MediaPlayListProxyModel::nextTrackDataChanged, d->mAudioWrapper.get(), updateNextSource);
+    updateNextSource();
+
     QObject::connect(d->mAudioWrapper.get(), &AudioWrapper::playbackStateChanged,
                      d->mAudioControl.get(), &ManageAudioPlayer::setPlayerPlaybackState);
     QObject::connect(d->mAudioWrapper.get(), &AudioWrapper::statusChanged, d->mAudioControl.get(), &ManageAudioPlayer::setPlayerStatus);

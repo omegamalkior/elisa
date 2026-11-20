@@ -139,6 +139,12 @@ public Q_SLOTS:
 
     void seek(qint64 position);
 
+    /**
+     * The song that plays after the current one, so that the end of the current
+     * song can fade into it (crossfade, see the CrossfadeSeconds setting).
+     */
+    void setNextSource(const QUrl &nextSource);
+
 private Q_SLOTS:
 
     void mediaStatusChanged();
@@ -171,6 +177,14 @@ private:
     void queueStatusChanged();
 
     void notifyStatusChanges();
+
+    void checkCrossfade(qint64 position);
+
+    void startCrossfade(qint64 fadeLength);
+
+    void crossfadeTick();
+
+    void finishCrossfade();
 
     friend class AudioWrapperPrivate;
 

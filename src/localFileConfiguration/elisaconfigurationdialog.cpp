@@ -81,6 +81,7 @@ void ElisaConfigurationDialog::save()
     Elisa::ElisaConfiguration::setUseFavoriteStyleRatings(mUseFavoriteStyleRatings);
     Elisa::ElisaConfiguration::setUseAlbumArtistInArtistsView(mUseAlbumArtistInArtistsView);
     Elisa::ElisaConfiguration::setCheckForUpdatesAtStartup(mCheckForUpdatesAtStartup);
+    Elisa::ElisaConfiguration::setCrossfadeSeconds(mCrossfadeSeconds);
 
     Elisa::ElisaConfiguration::setEmbeddedView(Elisa::ElisaConfiguration::EnumEmbeddedView::NoView);
     switch (mEmbeddedView)
@@ -243,6 +244,18 @@ void ElisaConfigurationDialog::setUseFavoriteStyleRatings(bool useFavoriteStyleR
     setDirty();
 }
 
+void ElisaConfigurationDialog::setCrossfadeSeconds(int crossfadeSeconds)
+{
+    crossfadeSeconds = qBound(0, crossfadeSeconds, 12);
+    if (mCrossfadeSeconds == crossfadeSeconds) {
+        return;
+    }
+    mCrossfadeSeconds = crossfadeSeconds;
+    Q_EMIT crossfadeSecondsChanged();
+
+    setDirty();
+}
+
 void ElisaConfigurationDialog::setCheckForUpdatesAtStartup(bool checkForUpdatesAtStartup)
 {
     if (mCheckForUpdatesAtStartup == checkForUpdatesAtStartup) {
@@ -299,6 +312,9 @@ void ElisaConfigurationDialog::configChanged()
 
     mCheckForUpdatesAtStartup = Elisa::ElisaConfiguration::checkForUpdatesAtStartup();
     Q_EMIT checkForUpdatesAtStartupChanged();
+
+    mCrossfadeSeconds = Elisa::ElisaConfiguration::crossfadeSeconds();
+    Q_EMIT crossfadeSecondsChanged();
 
     mAlwaysUseAbsolutePlaylistPaths = Elisa::ElisaConfiguration::alwaysUseAbsolutePlaylistPaths();
     Q_EMIT alwaysUseAbsolutePlaylistPathsChanged();

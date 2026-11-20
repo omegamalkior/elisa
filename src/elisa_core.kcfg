@@ -49,6 +49,14 @@
       true
     </default>
   </entry>
+  <entry key="CrossfadeSeconds" type="Int" >
+    <label>Seconds over which one song fades into the next (0 turns crossfade off)</label>
+    <default>
+      0
+    </default>
+    <min>0</min>
+    <max>12</max>
+  </entry>
   <entry key="InstallImportMenu" type="Bool" >
     <label>Add "Elisa: Import to Music" to the file manager's right-click menu</label>
     <default>

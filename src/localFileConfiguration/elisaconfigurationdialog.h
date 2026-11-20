@@ -93,6 +93,11 @@ class ELISALIB_EXPORT ElisaConfigurationDialog : public QObject
                WRITE setCheckForUpdatesAtStartup
                NOTIFY checkForUpdatesAtStartupChanged)
 
+    Q_PROPERTY(int crossfadeSeconds
+               READ crossfadeSeconds
+               WRITE setCrossfadeSeconds
+               NOTIFY crossfadeSecondsChanged)
+
 public:
 
     static ElisaConfigurationDialog *create(QQmlEngine *engine, QJSEngine *scriptEngine)
@@ -174,6 +179,11 @@ public:
         return mCheckForUpdatesAtStartup;
     }
 
+    [[nodiscard]] int crossfadeSeconds() const
+    {
+        return mCrossfadeSeconds;
+    }
+
     Q_INVOKABLE void removeMusicLocation(const QString &location);
 
 
@@ -207,6 +217,8 @@ Q_SIGNALS:
 
     void checkForUpdatesAtStartupChanged();
 
+    void crossfadeSecondsChanged();
+
 public Q_SLOTS:
 
     void setRootPath(const QStringList &rootPath);
@@ -239,6 +251,8 @@ public Q_SLOTS:
 
     void setCheckForUpdatesAtStartup(bool checkForUpdatesAtStartup);
 
+    void setCrossfadeSeconds(int crossfadeSeconds);
+
 private Q_SLOTS:
 
     void configChanged();
@@ -270,6 +284,8 @@ private:
     bool mUseAlbumArtistInArtistsView = false;
 
     bool mCheckForUpdatesAtStartup = true;
+
+    int mCrossfadeSeconds = 0;
 
     ElisaUtils::PlayListEntryType mEmbeddedView = ElisaUtils::Unknown;
 

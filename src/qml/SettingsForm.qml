@@ -125,6 +125,34 @@ ColumnLayout {
             Accessible.onPressAction: onToggled
         }
 
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.CheckBox {
+                id: crossfadeCheckBox
+
+                text: KI18n.i18nc("@option:check", "Crossfade between songs:")
+
+                checked: ElisaConfigurationDialog.crossfadeSeconds > 0
+                onToggled: ElisaConfigurationDialog.crossfadeSeconds = checked ? Math.max(crossfadeSpinBox.value, 1) : 0
+                Accessible.onToggleAction: onToggled
+                Accessible.onPressAction: onToggled
+            }
+
+            QQC2.SpinBox {
+                id: crossfadeSpinBox
+
+                enabled: crossfadeCheckBox.checked
+                from: 1
+                to: 12
+                value: ElisaConfigurationDialog.crossfadeSeconds > 0 ? ElisaConfigurationDialog.crossfadeSeconds : 5
+                onValueModified: ElisaConfigurationDialog.crossfadeSeconds = value
+                textFromValue: (value, locale) => KI18n.i18ncp("@item:valuesuffix crossfade length", "%1 second", "%1 seconds", value)
+                valueFromText: (text, locale) => parseInt(text)
+            }
+        }
+
         QQC2.CheckBox {
             Layout.fillWidth: true
 

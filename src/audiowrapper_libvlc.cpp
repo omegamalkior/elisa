@@ -640,5 +640,10 @@ void AudioWrapperPrivate::signalErrorChange(QMediaPlayer::Error errorCode)
     }
 }
 
+void AudioWrapper::setNextSource(const QUrl &nextSource)
+{
+    // crossfade is only available with the Qt Multimedia backend
+    Q_UNUSED(nextSource)
+}
 
 #include "moc_audiowrapper.cpp"
