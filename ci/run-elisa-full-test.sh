@@ -9,7 +9,6 @@ if [ -n "$APPIMAGE_PATH" ]; then
 else
   CONF=$HOME/.var/app/org.kde.elisa/config
   flatpak override --user --filesystem=$HOME/Music org.kde.elisa
-  flatpak override --user --filesystem=xdg-download org.kde.elisa   # drop test: archives dropped from Downloads
   flatpak override --user --env=QSG_INFO=1 org.kde.elisa   # log which renderer is used
   flatpak override --user --env=QT_LOGGING_RULES=org.kde.elisa.views.debug=true org.kde.elisa
 fi
