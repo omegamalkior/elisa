@@ -1,0 +1,50 @@
+name: Publish tested build 18
+
+on:
+  push:
+    branches: [publish-build]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: bundle
+          run-id: 44645010101
+          github-token: ${{ github.token }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: appimage
+          run-id: 44645010101
+          github-token: ${{ github.token }}
+
+      - run: ls -la
+
+      - name: Publish both as downloads
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: album-artist-build-18
+          target_commitish: 655aa9f
+          name: Elisa 26.08.3 – Album Artist support, Dark Mode toggle & modern look (build 18)
+          body: |
+            Elisa 26.08.3 (KDE music player) with:
+            - **New:** built-in updater. Elisa looks for a newer build every time it starts and can install it for you (☰ menu → Check for Updates; can be switched off in Settings).
+            - **New:** right-click an album or a song to hide it from Elisa or to delete its files from the computer. Hidden music is listed in Settings, where each entry can be switched on/off or removed (which brings it back).
+            - **New:** song lists show clean names and 1, 2, 3… numbering instead of odd tag numbers; right-click a song to switch between adjusted names and file names. Albums are ordered by their track numbers even when some songs miss a disc number.
+            - **New:** the playlist panel opens at a readable width.
+            - Album Artist (TPE2) support: an optional Settings checkbox to group the Artists view by album artist. Off by default, so Elisa shows every artist as usual.
+            - A Dark Mode toggle in the ☰ menu, and a more modern look.
+            - A Recently Added view, a Sleep Timer (☰ menu) and volume shortcuts (Ctrl+Up / Ctrl+Down).
+
+            **Flatpak (Steam Deck / Linux):** download `elisa-album-artist.flatpak` and double-click it (or run `flatpak install elisa-album-artist.flatpak` in Konsole).
+
+            **AppImage (any Linux, no install needed):** download `Elisa-album-artist-x86_64.AppImage`, make it executable (right-click → Properties → Permissions → "Is executable") and double-click it.
+          files: |
+            elisa-album-artist.flatpak
+            Elisa-album-artist-x86_64.AppImage
