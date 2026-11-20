@@ -79,6 +79,8 @@ jobs:
           flatpak install --user -y --noninteractive ./elisa-album-artist.flatpak
 
       - name: Run Elisa and take screenshots
+        env:
+          UPDATE_TOKEN: ${{ github.token }}
         run: |
           dbus-run-session -- ./ci/run-elisa-full-test.sh
           cat results/checks.txt
@@ -117,6 +119,8 @@ jobs:
           ls -la dist
 
       - name: Run Elisa and take screenshots
+        env:
+          UPDATE_TOKEN: ${{ github.token }}
         run: |
           export APPIMAGE_PATH=$(ls $PWD/dist/*.AppImage | head -n 1)
           dbus-run-session -- ./ci/run-elisa-full-test.sh

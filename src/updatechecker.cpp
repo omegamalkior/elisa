@@ -114,6 +114,12 @@ void UpdateChecker::check(bool userRequested)
 
     auto request = gitHubRequest(QUrl{latestReleaseUrl});
     request.setRawHeader("Accept", "application/vnd.github+json");
+    // optional: a GitHub token for machines that share their address with many others
+    // (GitHub answers only 60 anonymous questions per hour and address)
+    const auto token = qgetenv("ELISA_UPDATE_GITHUB_TOKEN");
+    if (!token.isEmpty()) {
+        request.setRawHeader("Authorization", "Bearer " + token);
+    }
 
     auto *reply = mNetwork->get(request);
     connect(reply, &QNetworkReply::finished, this, [this, reply, userRequested] {

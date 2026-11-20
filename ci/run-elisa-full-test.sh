@@ -56,7 +56,8 @@ start_elisa() {
   if [ -n "$APPIMAGE_PATH" ]; then
     env $2 QSG_INFO=1 QT_LOGGING_RULES=org.kde.elisa.views.debug=true "$APPIMAGE_PATH" > $OUT/$1.log 2>&1 &
   else
-    flatpak run ${2:+--env=$2} org.kde.elisa > $OUT/$1.log 2>&1 &
+    local envs=""; for e in $2; do envs="$envs --env=$e"; done
+    flatpak run $envs org.kde.elisa > $OUT/$1.log 2>&1 &
   fi
   ELISA_PID=$!
   for i in $(seq 1 60); do xdotool search --name Elisa >/dev/null 2>&1 && break; sleep 1; done
@@ -186,13 +187,13 @@ key ctrl+shift+comma 4
 hover 230 294;         shot settings-before-untick
 click 230 294 1;       shot settings-unticked
 click 423 555 6;       shot option-off-all-artists
-check "Settings: unticking the album artist option is saved" 'grep -q "UseAlbumArtistInArtistsView=false" $CONF/elisarc'
+check "Settings: unticking the album artist option is saved" '! grep -q "UseAlbumArtistInArtistsView=true" $CONF/elisarc'
 
 # Cancel should not change anything
 key ctrl+shift+comma 4
 click 230 294 1
 click 511 555 4;       shot settings-cancel-keeps-option-off
-check "Settings: Cancel changes nothing" 'grep -q "UseAlbumArtistInArtistsView=false" $CONF/elisarc'
+check "Settings: Cancel changes nothing" '! grep -q "UseAlbumArtistInArtistsView=true" $CONF/elisarc'
 
 # narrow and wide windows
 xdotool windowsize --sync $WID 560 648; sleep 4; xdotool getwindowgeometry $WID; shot narrow-window
@@ -251,7 +252,7 @@ check "hidden song file is still on disk" '[ -f "$H/01 Human Race.mp3" ]'
 # delete the song that is first now (Painkiller): confirmation, then Delete
 rclick 450 $ROW1
 click 530 $((ROW1+M_DELETE)) 3; shot delete-song-confirmation
-click ${DELETE_BTN_X:-742} ${DELETE_BTN_Y:-344} 4; shot after-delete-song
+click ${DELETE_BTN_X:-683} ${DELETE_BTN_Y:-344} 4; shot after-delete-song
 check "deleted song file is gone from disk" '[ ! -e "$H/02 - Painkiller (Official Video).mp3" ]'
 check "other songs are still on disk" '[ -f "$H/12 The Real You.mp3" ] && [ -f "$H/16. Let You Down (Live).mp3" ]'
 key Escape
@@ -301,14 +302,14 @@ check "import of a folder while Elisa is closed" '[ -f "$HOME/Music/Closed EP/01
 
 ########## RUN 4: update check at startup (pretends to be build 1) ##########
 BEFORE=$(flatpak info --user org.kde.elisa 2>/dev/null | grep -i commit | head -n 1)
-start_elisa run4 ELISA_FORK_BUILD_NUMBER_OVERRIDE=1
+start_elisa run4 "ELISA_FORK_BUILD_NUMBER_OVERRIDE=1 ${UPDATE_TOKEN:+ELISA_UPDATE_GITHUB_TOKEN=$UPDATE_TOKEN}"
 shot update-banner-at-startup
 check "folder imported while closed is sorted at startup, cover included" '[ -f "$HOME/Music/Night Owl/Closed EP/01 Later.mp3" ] && [ -f "$HOME/Music/Night Owl/Closed EP/cover.jpg" ] && [ ! -e "$HOME/Music/Closed EP" ]'
 grep "Elisa update check" $OUT/run4.log >> $OUT/checks.txt
 check "update check ran at startup and saw the published build" 'grep -q "Elisa update check: this is build 1 - latest published build is" $OUT/run4.log' WARN
 if [ -z "$APPIMAGE_PATH" ]; then
   # Flatpak: let Elisa install the published build by itself
-  click ${UPDATE_BTN_X:-790} 207 60; shot update-after-update-now
+  click ${UPDATE_BTN_X:-772} 207 75; shot update-after-update-now
   AFTER=$(flatpak info --user org.kde.elisa 2>/dev/null | grep -i commit | head -n 1)
   echo "before: $BEFORE / after: $AFTER" >> $OUT/checks.txt
   check "updater installed the published build (Flatpak)" '[ -n "$AFTER" ] && [ "$BEFORE" != "$AFTER" ]' WARN
