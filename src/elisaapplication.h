@@ -189,6 +189,13 @@ public:
     /// Sorts every song of the music folders into Artist/Album folders
     Q_INVOKABLE void sortMusicFolders();
 
+    /// Whether archives (zip, 7z, rar, tar...) dropped on Elisa can be imported
+    Q_INVOKABLE bool canImportArchives() const;
+
+    /// Unpacks the archives into the music folder (like "Elisa: Import to Music");
+    /// the music in them is then sorted into Artist/Album folders
+    Q_INVOKABLE void importArchives(const QList<QUrl> &archives);
+
     /// A song title without track number, file extension and download leftovers
     Q_INVOKABLE QString adjustedTitle(const QString &title, int trackNumber = 0) const;
 

@@ -48,6 +48,8 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QFileSystemWatcher>
+#include <QStandardPaths>
+#include <QProcess>
 #include <QKeyEvent>
 #include <QFileSystemWatcher>
 #include <QMimeDatabase>
@@ -843,6 +845,68 @@ void ElisaApplication::processImportQueues()
     }
 
     sortInBackground(work);
+}
+
+bool ElisaApplication::canImportArchives() const
+{
+#if defined Q_OS_LINUX && !defined Q_OS_ANDROID
+    return true;
+#else
+    return false;
+#endif
+}
+
+void ElisaApplication::importArchives(const QList<QUrl> &archives)
+{
+#if defined Q_OS_LINUX && !defined Q_OS_ANDROID
+    QStringList files;
+    for (const auto &url : archives) {
+        if (url.isLocalFile()) {
+            files.push_back(url.toLocalFile());
+        }
+    }
+    if (files.isEmpty()) {
+        return;
+    }
+
+    // into the first music folder, where the import queue is picked up and sorted
+    QString destination;
+    const auto roots = Elisa::ElisaConfiguration::self()->rootPath();
+    for (const auto &root : roots) {
+        if (QFileInfo{root}.isDir()) {
+            destination = QDir::cleanPath(root);
+            break;
+        }
+    }
+    if (destination.isEmpty()) {
+        destination = QStandardPaths::writableLocation(QStandardPaths::MusicLocation);
+    }
+
+    // the same script as the file manager's "Elisa: Import to Music" action
+    const auto cacheFolder = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+    QDir{}.mkpath(cacheFolder);
+    const auto scriptPath = cacheFolder + u"/elisa-import-to-music.sh"_s;
+    QFile resource{u":/elisa/elisa-import-to-music.sh"_s};
+    QFile script{scriptPath};
+    if (!resource.open(QIODevice::ReadOnly) || !script.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        return;
+    }
+    script.write(resource.readAll());
+    script.close();
+
+    QProcess process;
+    process.setProgram(u"/bin/sh"_s);
+    process.setArguments(QStringList{scriptPath} + files);
+    auto environment = QProcessEnvironment::systemEnvironment();
+    environment.insert(u"ELISA_IMPORT_DEST"_s, destination);
+    // the unpacking tools come from the system, not from Elisa's own (AppImage) libraries
+    environment.remove(u"LD_LIBRARY_PATH"_s);
+    environment.remove(u"LD_PRELOAD"_s);
+    process.setProcessEnvironment(environment);
+    process.startDetached();
+#else
+    Q_UNUSED(archives)
+#endif
 }
 
 void ElisaApplication::sortMusicFolders()

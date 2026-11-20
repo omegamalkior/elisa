@@ -10,6 +10,7 @@ import QtCore
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Window
+import QtQuick.Controls as QQC2
 import QtQuick.Dialogs as Dialogs
 import org.kde.config as KConfig
 import org.kde.ki18n
@@ -172,11 +173,94 @@ Kirigami.ApplicationWindow {
     }
 
     DropArea {
+        id: dropArea
+
+        // archives (zip, 7z, rar, tar...) are unpacked into the music folder and sorted
+        readonly property var archivePattern: /\.(zip|7z|rar|tar|tgz|tbz2|txz|tar\.(gz|bz2|xz|zst))$/i
+        property bool archiveDrag: false
+
+        function archivesIn(urls) {
+            const archives = []
+            for (let i = 0; i < urls.length; ++i) {
+                const url = urls[i].toString()
+                if (url.startsWith("file:") && archivePattern.test(decodeURIComponent(url))) {
+                    archives.push(urls[i])
+                }
+            }
+            return archives
+        }
+
         anchors.fill: parent
+        z: 1000
+
+        onEntered: drag => {
+            archiveDrag = drag.hasUrls && ElisaApplication.canImportArchives() && archivesIn(drag.urls).length > 0
+        }
+        onExited: archiveDrag = false
+
         onDropped: drop => {
-            if (drop.hasUrls) {
-                if (!ElisaApplication.openFiles(drop.urls)) {
-                    mainWindow.showPassiveNotification(KI18n.i18nc("@info:status", "Could not load some files. Elisa can only open audio and playlist files."), 7000, "", function() {})
+            archiveDrag = false
+            if (!drop.hasUrls) {
+                return
+            }
+
+            const urls = drop.urls
+            const archives = ElisaApplication.canImportArchives() ? archivesIn(urls) : []
+            const archiveNames = archives.map(url => url.toString())
+            const others = []
+            for (let i = 0; i < urls.length; ++i) {
+                if (archiveNames.indexOf(urls[i].toString()) === -1) {
+                    others.push(urls[i])
+                }
+            }
+
+            if (archives.length > 0) {
+                ElisaApplication.importArchives(archives)
+                mainWindow.showPassiveNotification(KI18n.i18ncp("@info:status", "Unpacking %1 archive into the music folder. Its songs are sorted into Artist/Album folders.", "Unpacking %1 archives into the music folder. Their songs are sorted into Artist/Album folders.", archives.length), 6000, "", function() {})
+            }
+            if (others.length > 0 && !ElisaApplication.openFiles(others)) {
+                mainWindow.showPassiveNotification(KI18n.i18nc("@info:status", "Could not load some files. Elisa can only open audio and playlist files."), 7000, "", function() {})
+            }
+        }
+
+        // shown over the whole window while an archive is dragged over it; the app stays visible behind
+        Rectangle {
+            anchors.fill: parent
+            visible: dropArea.archiveDrag
+            color: Qt.alpha(Kirigami.Theme.backgroundColor, 0.72)
+            border.color: Kirigami.Theme.highlightColor
+            border.width: 3
+            radius: Kirigami.Units.cornerRadius
+
+            Accessible.role: Accessible.Pane
+            Accessible.name: dropLabel.text
+
+            ColumnLayout {
+                anchors.centerIn: parent
+                spacing: Kirigami.Units.largeSpacing
+
+                Kirigami.Icon {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.preferredWidth: Kirigami.Units.iconSizes.enormous
+                    Layout.preferredHeight: Kirigami.Units.iconSizes.enormous
+                    source: "archive-extract"
+                    fallback: "folder-music"
+                    color: Kirigami.Theme.highlightColor
+                    isMask: false
+                }
+
+                Kirigami.Heading {
+                    id: dropLabel
+
+                    Layout.alignment: Qt.AlignHCenter
+                    level: 1
+                    text: KI18n.i18nc("@label shown while dragging an archive over Elisa", "Drop for Auto-Sort")
+                }
+
+                QQC2.Label {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: KI18n.i18nc("@label", "Unpacked into your music folder and sorted into Artist/Album folders")
+                    opacity: 0.8
                 }
             }
         }
