@@ -48,6 +48,9 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QFileSystemWatcher>
+#include <QCoreApplication>
+#include <QRegularExpression>
+#include <QDirIterator>
 #include <QStandardPaths>
 #include <QProcess>
 #include <QKeyEvent>
@@ -114,6 +117,14 @@ public:
     bool mImportMenuEnabled = true;
 
     bool mSortImportedMusic = true;
+
+    bool mImportBusy = false;
+
+    qreal mImportProgress = -1;
+
+    QString mImportStatus;
+
+    bool mImportDone = false;
 
     QFileSystemWatcher mImportWatcher;
 
@@ -856,6 +867,76 @@ bool ElisaApplication::canImportArchives() const
 #endif
 }
 
+namespace {
+
+// size of everything in a folder, to follow how far the unpacking has come
+qint64 folderSize(const QString &folder)
+{
+    qint64 size = 0;
+    QDirIterator it{folder, QDir::Files | QDir::Hidden | QDir::NoSymLinks, QDirIterator::Subdirectories};
+    while (it.hasNext()) {
+        it.next();
+        size += it.fileInfo().size();
+    }
+    return size;
+}
+
+// "Name", "Name (2)", "Name (3)"... : a path that does not exist yet
+QString uniquePath(const QString &path)
+{
+    if (!QFileInfo::exists(path)) {
+        return path;
+    }
+    for (int n = 2;; ++n) {
+        const auto candidate = path + u" ("_s + QString::number(n) + u")"_s;
+        if (!QFileInfo::exists(candidate)) {
+            return candidate;
+        }
+    }
+}
+
+QString archiveStem(const QString &fileName)
+{
+    static const QRegularExpression extension{u"\\.(tar\\.(gz|bz2|xz|zst)|zip|7z|rar|tar|tgz|tbz2|txz)$"_s, QRegularExpression::CaseInsensitiveOption};
+    auto stem = fileName;
+    stem.remove(extension);
+    return stem.isEmpty() ? fileName : stem;
+}
+
+QProcessEnvironment systemToolsEnvironment()
+{
+    // the unpacking tools come from the system, not from Elisa's own (AppImage) libraries
+    auto environment = QProcessEnvironment::systemEnvironment();
+    environment.remove(u"LD_LIBRARY_PATH"_s);
+    environment.remove(u"LD_PRELOAD"_s);
+    return environment;
+}
+
+// total unpacked size of an archive, from bsdtar's listing ("-rw-r--r-- 0 user group SIZE date name")
+qint64 archiveContentSize(const QString &bsdtar, const QString &archive)
+{
+    QProcess list;
+    list.setProcessEnvironment(systemToolsEnvironment());
+    list.start(bsdtar, {u"-tvf"_s, archive});
+    if (!list.waitForFinished(120000) || list.exitCode() != 0) {
+        return -1;
+    }
+    qint64 total = 0;
+    const auto lines = QString::fromUtf8(list.readAllStandardOutput()).split(u'\n', Qt::SkipEmptyParts);
+    for (const auto &line : lines) {
+        if (!line.startsWith(u'-')) {
+            continue; // folders and links take no room
+        }
+        const auto fields = line.simplified().split(u' ');
+        if (fields.size() > 4) {
+            total += fields.at(4).toLongLong();
+        }
+    }
+    return total;
+}
+
+}
+
 void ElisaApplication::importArchives(const QList<QUrl> &archives)
 {
 #if defined Q_OS_LINUX && !defined Q_OS_ANDROID
@@ -865,11 +946,11 @@ void ElisaApplication::importArchives(const QList<QUrl> &archives)
             files.push_back(url.toLocalFile());
         }
     }
-    if (files.isEmpty()) {
+    if (files.isEmpty() || d->mImportBusy) {
         return;
     }
 
-    // into the first music folder, where the import queue is picked up and sorted
+    // into the first music folder
     QString destination;
     const auto roots = Elisa::ElisaConfiguration::self()->rootPath();
     for (const auto &root : roots) {
@@ -881,32 +962,201 @@ void ElisaApplication::importArchives(const QList<QUrl> &archives)
     if (destination.isEmpty()) {
         destination = QStandardPaths::writableLocation(QStandardPaths::MusicLocation);
     }
+    QDir{}.mkpath(destination);
 
-    // the same script as the file manager's "Elisa: Import to Music" action
-    const auto cacheFolder = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
-    QDir{}.mkpath(cacheFolder);
-    const auto scriptPath = cacheFolder + u"/elisa-import-to-music.sh"_s;
-    QFile resource{u":/elisa/elisa-import-to-music.sh"_s};
-    QFile script{scriptPath};
-    if (!resource.open(QIODevice::ReadOnly) || !script.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+    const auto bsdtar = QStandardPaths::findExecutable(u"bsdtar"_s);
+    if (bsdtar.isEmpty()) {
+        // no bsdtar: let the "Import to Music" script do it (no detailed progress)
+        const auto cacheFolder = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+        QDir{}.mkpath(cacheFolder);
+        const auto scriptPath = cacheFolder + u"/elisa-import-to-music.sh"_s;
+        QFile resource{u":/elisa/elisa-import-to-music.sh"_s};
+        QFile script{scriptPath};
+        if (!resource.open(QIODevice::ReadOnly) || !script.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+            return;
+        }
+        script.write(resource.readAll());
+        script.close();
+
+        QProcess process;
+        process.setProgram(u"/bin/sh"_s);
+        process.setArguments(QStringList{scriptPath} + files);
+        auto environment = systemToolsEnvironment();
+        environment.insert(u"ELISA_IMPORT_DEST"_s, destination);
+        process.setProcessEnvironment(environment);
+        process.startDetached();
         return;
     }
-    script.write(resource.readAll());
-    script.close();
 
-    QProcess process;
-    process.setProgram(u"/bin/sh"_s);
-    process.setArguments(QStringList{scriptPath} + files);
-    auto environment = QProcessEnvironment::systemEnvironment();
-    environment.insert(u"ELISA_IMPORT_DEST"_s, destination);
-    // the unpacking tools come from the system, not from Elisa's own (AppImage) libraries
-    environment.remove(u"LD_LIBRARY_PATH"_s);
-    environment.remove(u"LD_PRELOAD"_s);
-    process.setProcessEnvironment(environment);
-    process.startDetached();
+    const bool sortMusic = d->mSortImportedMusic;
+    const auto hidden = d->mBlacklist->hiddenFiles();
+
+    setImportState(true, 0, i18nc("@info:progress", "Unpacking…"), false);
+
+    // progress updates from the worker thread
+    auto report = [this](qreal progress, const QString &status, bool done) {
+        QMetaObject::invokeMethod(this, [this, progress, status, done] {
+            setImportState(true, progress, status, done);
+            if (done) {
+                if (d->mMusicManager) {
+                    d->mMusicManager->scanCollection(MusicListenersManager::CollectionScan::Soft);
+                }
+                QTimer::singleShot(6000, this, &ElisaApplication::dismissImportStatus);
+            }
+        }, Qt::QueuedConnection);
+    };
+
+    auto importFuture = QtConcurrent::run([files, destination, bsdtar, sortMusic, hidden, report] {
+        // 1. unpack, following the unpacked size against the archives' content size
+        QList<qint64> sizes;
+        qint64 totalSize = 0;
+        for (const auto &file : files) {
+            const auto size = archiveContentSize(bsdtar, file);
+            sizes.push_back(size);
+            totalSize += std::max<qint64>(size, 0);
+        }
+
+        QStringList imported;
+        int failedArchives = 0;
+        qint64 doneSize = 0;
+        for (int index = 0; index < files.size(); ++index) {
+            const auto &file = files.at(index);
+            const auto name = QFileInfo{file}.fileName();
+            const auto label = files.size() > 1 ? i18nc("@info:progress %1 archive name, %2 number, %3 count", "Unpacking %1 (%2 of %3)…", name, index + 1, files.size())
+                                                : i18nc("@info:progress %1 archive name", "Unpacking %1…", name);
+
+            const auto temporary = destination + u"/.elisa-import-"_s + QString::number(QCoreApplication::applicationPid()) + u'-' + QString::number(index);
+            QDir{temporary}.removeRecursively();
+            QDir{}.mkpath(temporary);
+
+            QProcess unpack;
+            unpack.setProcessEnvironment(systemToolsEnvironment());
+            unpack.start(bsdtar, {u"-xf"_s, file, u"-C"_s, temporary});
+            unpack.waitForStarted();
+            while (!unpack.waitForFinished(200)) {
+                if (unpack.state() == QProcess::NotRunning) {
+                    break;
+                }
+                const auto progress = totalSize > 0 ? std::clamp(static_cast<qreal>(doneSize + folderSize(temporary)) / totalSize, 0.0, 1.0) : -1.0;
+                report(progress, label, false);
+            }
+
+            if (unpack.exitStatus() != QProcess::NormalExit || unpack.exitCode() != 0) {
+                QDir{temporary}.removeRecursively();
+                ++failedArchives;
+                continue;
+            }
+            doneSize += std::max<qint64>(sizes.at(index), 0);
+            report(totalSize > 0 ? static_cast<qreal>(doneSize) / totalSize : -1.0, label, false);
+
+            // one folder inside: keep that folder, not a folder in a folder
+            const auto entries = QDir{temporary}.entryList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden);
+            QString target;
+            if (entries.size() == 1 && QFileInfo{temporary + u'/' + entries.first()}.isDir()) {
+                target = uniquePath(destination + u'/' + entries.first());
+                QDir{}.rename(temporary + u'/' + entries.first(), target);
+                QDir{}.rmdir(temporary);
+            } else {
+                target = uniquePath(destination + u'/' + archiveStem(name));
+                QDir{}.rename(temporary, target);
+            }
+            imported.push_back(target);
+            QFile::moveToTrash(file);
+        }
+
+        // 2. sort into Artist/Album folders, following the songs whose tags are read
+        int songs = 0;
+        MusicOrganizer::Result result;
+        if (sortMusic && !imported.isEmpty()) {
+            FileScanner scanner;
+            int total = 0;
+            for (const auto &item : std::as_const(imported)) {
+                QDirIterator it{item, QDir::Files, QDirIterator::Subdirectories};
+                while (it.hasNext()) {
+                    if (scanner.shouldScanFile(it.next())) {
+                        ++total;
+                    }
+                }
+            }
+
+            int read = 0;
+            const MusicOrganizer::TagReader readTags = [&](const QString &songFile) {
+                MusicOrganizer::SongTags tags;
+                const bool counted = scanner.shouldScanFile(songFile);
+                if (counted) {
+                    ++read;
+                    report(total > 0 ? std::min(1.0, static_cast<qreal>(read) / total) : -1.0,
+                           i18nc("@info:progress %1 number, %2 count", "Sorting into Artist/Album folders (%1 of %2)…", std::min(read, total), total), false);
+                }
+                if (hidden.contains(QUrl::fromLocalFile(songFile)) || !counted) {
+                    return tags;
+                }
+                const auto track = scanner.scanOneFile(QUrl::fromLocalFile(songFile));
+                tags.isSong = track.isValid();
+                tags.artist = track.artist();
+                tags.albumArtist = track.albumArtist();
+                tags.album = track.album();
+                return tags;
+            };
+            report(0, i18nc("@info:progress", "Sorting into Artist/Album folders…"), false);
+            result = MusicOrganizer::organize(destination, imported, readTags);
+            songs = result.moved + result.alreadyInPlace;
+        }
+
+        QString summary;
+        if (imported.isEmpty()) {
+            summary = i18nc("@info:status", "Could not unpack the archive");
+        } else if (sortMusic) {
+            summary = i18ncp("@info:status", "Done: %1 song sorted into Artist/Album folders", "Done: %1 songs sorted into Artist/Album folders", songs);
+        } else {
+            summary = i18ncp("@info:status", "Done: %1 archive unpacked into the music folder", "Done: %1 archives unpacked into the music folder", imported.size());
+        }
+        if (failedArchives > 0 && !imported.isEmpty()) {
+            summary += u" · "_s + i18ncp("@info:status", "%1 archive could not be unpacked", "%1 archives could not be unpacked", failedArchives);
+        }
+        report(1.0, summary, true);
+    });
+    Q_UNUSED(importFuture)
 #else
     Q_UNUSED(archives)
 #endif
+}
+
+bool ElisaApplication::importBusy() const
+{
+    return d->mImportBusy;
+}
+
+qreal ElisaApplication::importProgress() const
+{
+    return d->mImportProgress;
+}
+
+QString ElisaApplication::importStatus() const
+{
+    return d->mImportStatus;
+}
+
+bool ElisaApplication::importDone() const
+{
+    return d->mImportDone;
+}
+
+void ElisaApplication::dismissImportStatus()
+{
+    if (!d->mImportDone) {
+        return;
+    }
+    setImportState(false, -1, {}, false);
+}
+
+void ElisaApplication::setImportState(bool busy, qreal progress, const QString &status, bool done)
+{
+    d->mImportBusy = busy;
+    d->mImportProgress = progress;
+    d->mImportStatus = status;
+    d->mImportDone = done;
+    Q_EMIT importStateChanged();
 }
 
 void ElisaApplication::sortMusicFolders()

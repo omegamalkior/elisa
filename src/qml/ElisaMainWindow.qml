@@ -215,8 +215,8 @@ Kirigami.ApplicationWindow {
             }
 
             if (archives.length > 0) {
+                // progress is shown in the small bar at the bottom of the window
                 ElisaApplication.importArchives(archives)
-                mainWindow.showPassiveNotification(KI18n.i18ncp("@info:status", "Unpacking %1 archive into the music folder. Its songs are sorted into Artist/Album folders.", "Unpacking %1 archives into the music folder. Their songs are sorted into Artist/Album folders.", archives.length), 6000, "", function() {})
             }
             if (others.length > 0 && !ElisaApplication.openFiles(others)) {
                 mainWindow.showPassiveNotification(KI18n.i18nc("@info:status", "Could not load some files. Elisa can only open audio and playlist files."), 7000, "", function() {})
@@ -262,6 +262,81 @@ Kirigami.ApplicationWindow {
                     text: KI18n.i18nc("@label", "Unpacked into your music folder and sorted into Artist/Album folders")
                     opacity: 0.8
                 }
+            }
+        }
+    }
+
+    // small progress bar for archives dropped on Elisa: unpacking, then sorting;
+    // it floats at the bottom and leaves the rest of the app usable
+    Rectangle {
+        id: importProgressBar
+
+        visible: ElisaApplication.importBusy
+        z: 999
+
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: Kirigami.Units.gridUnit * 3
+        width: Math.min(parent.width - Kirigami.Units.gridUnit * 2, Kirigami.Units.gridUnit * 26)
+        height: importRow.implicitHeight + Kirigami.Units.smallSpacing * 2
+
+        radius: Kirigami.Units.cornerRadius
+        color: Kirigami.Theme.backgroundColor
+        border.color: Kirigami.Theme.disabledTextColor
+        border.width: 1
+
+        Kirigami.Theme.colorSet: Kirigami.Theme.Window
+        Kirigami.Theme.inherit: false
+
+        RowLayout {
+            id: importRow
+
+            anchors.fill: parent
+            anchors.leftMargin: Kirigami.Units.largeSpacing
+            anchors.rightMargin: Kirigami.Units.smallSpacing
+            spacing: Kirigami.Units.largeSpacing
+
+            Kirigami.Icon {
+                Layout.preferredWidth: Kirigami.Units.iconSizes.small
+                Layout.preferredHeight: Kirigami.Units.iconSizes.small
+                source: ElisaApplication.importDone ? "dialog-ok" : "archive-extract"
+                fallback: "folder-music"
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 2
+
+                QQC2.Label {
+                    Layout.fillWidth: true
+                    text: ElisaApplication.importStatus
+                    elide: Text.ElideMiddle
+                    font: Kirigami.Theme.smallFont
+                }
+
+                QQC2.ProgressBar {
+                    Layout.fillWidth: true
+                    visible: !ElisaApplication.importDone
+                    from: 0
+                    to: 1
+                    indeterminate: ElisaApplication.importProgress < 0
+                    value: Math.max(ElisaApplication.importProgress, 0)
+                }
+            }
+
+            QQC2.Label {
+                visible: !ElisaApplication.importDone && ElisaApplication.importProgress >= 0
+                text: Math.round(ElisaApplication.importProgress * 100) + "%"
+                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                font.features: { "tnum": 1 }
+            }
+
+            QQC2.ToolButton {
+                visible: ElisaApplication.importDone
+                icon.name: "window-close"
+                display: QQC2.AbstractButton.IconOnly
+                text: KI18n.i18nc("@action:button", "Close")
+                onClicked: ElisaApplication.dismissImportStatus()
             }
         }
     }

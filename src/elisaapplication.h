@@ -93,6 +93,18 @@ class ELISALIB_EXPORT ElisaApplication : public QObject
                WRITE setSortImportedMusic
                NOTIFY sortImportedMusicChanged)
 
+    /// An import of dropped archives is going on (or has just finished)
+    Q_PROPERTY(bool importBusy READ importBusy NOTIFY importStateChanged)
+
+    /// Progress of the current step of the import, 0 to 1 (-1: unknown)
+    Q_PROPERTY(qreal importProgress READ importProgress NOTIFY importStateChanged)
+
+    /// What the import is doing, for the progress bar
+    Q_PROPERTY(QString importStatus READ importStatus NOTIFY importStateChanged)
+
+    /// The import has finished
+    Q_PROPERTY(bool importDone READ importDone NOTIFY importStateChanged)
+
     Q_PROPERTY(bool showFileNames
                READ showFileNames
                WRITE setShowFileNames
@@ -196,6 +208,17 @@ public:
     /// the music in them is then sorted into Artist/Album folders
     Q_INVOKABLE void importArchives(const QList<QUrl> &archives);
 
+    [[nodiscard]] bool importBusy() const;
+
+    [[nodiscard]] qreal importProgress() const;
+
+    [[nodiscard]] QString importStatus() const;
+
+    [[nodiscard]] bool importDone() const;
+
+    /// Hides the import progress bar once the import is done
+    Q_INVOKABLE void dismissImportStatus();
+
     /// A song title without track number, file extension and download leftovers
     Q_INVOKABLE QString adjustedTitle(const QString &title, int trackNumber = 0) const;
 
@@ -272,6 +295,8 @@ Q_SIGNALS:
 
     void musicSorted(int moved, int failed);
 
+    void importStateChanged();
+
     void commitDataRequest();
 
     void embeddedViewChanged();
@@ -338,6 +363,9 @@ protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
+
+    void setImportState(bool busy, qreal progress, const QString &status, bool done);
+
 
     void processImportQueues();
 
