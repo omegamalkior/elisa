@@ -538,9 +538,8 @@ void ElisaApplication::initializeModels()
         });
     });
 
-    // an album found on MusicBrainz for a song without one: read the song again
-    connect(AlbumLookup::instance(), &AlbumLookup::albumFound, this, [this](const QUrl &file, const QString &album) {
-        Q_UNUSED(album)
+    // an album or a cover found online for a song: read the song again, so the library has it
+    const auto readAgain = [this](const QUrl &file) {
         if (!d->mMusicManager || !file.isLocalFile()) {
             return;
         }
@@ -553,6 +552,57 @@ void ElisaApplication::initializeModels()
         QMetaObject::invokeMethod(database, [database, track] {
             database->insertTracksList({track});
         });
+    };
+    connect(AlbumLookup::instance(), &AlbumLookup::albumFound, this, [readAgain](const QUrl &file, const QString &) {
+        readAgain(file);
+    });
+    connect(AlbumLookup::instance(), &AlbumLookup::coverFound, this, [readAgain](const QUrl &file, const QString &) {
+        readAgain(file);
+    });
+
+    // songs already in the library without an album or a cover, and artists without a
+    // photo: ask once, a little after start (songs are only read again when they change)
+    QTimer::singleShot(15000, this, [this] {
+        if (!d->mMusicManager) {
+            return;
+        }
+        auto *database = d->mMusicManager->viewDatabase();
+        DataTypes::ListTrackDataType tracks;
+        DataTypes::ListArtistDataType artists;
+        QMetaObject::invokeMethod(database, [database, &tracks, &artists] {
+            tracks = database->allTracksData();
+            artists = database->allArtistsData();
+        }, Qt::BlockingQueuedConnection);
+        for (const auto &track : std::as_const(tracks)) {
+            const auto file = track.resourceURI();
+            if (!file.isLocalFile()) {
+                continue;
+            }
+            const auto artist = track.albumArtist().isEmpty() ? track.artist() : track.albumArtist();
+            if (artist.isEmpty()) {
+                continue;
+            }
+            bool known = false;
+            if (track.album().isEmpty()) {
+                AlbumLookup::instance()->cachedAlbum(artist, track.title(), &known);
+                if (!known) {
+                    AlbumLookup::instance()->requestInBackground(artist, track.title(), file);
+                }
+            } else if (track.albumCover().isEmpty()) {
+                AlbumLookup::instance()->cachedCover(artist, track.album(), &known);
+                if (!known) {
+                    AlbumLookup::instance()->requestCover(artist, track.album(), file);
+                }
+            }
+        }
+        for (const auto &artist : std::as_const(artists)) {
+            bool known = false;
+            const auto name = artist.value(DataTypes::TitleRole).toString();
+            AlbumLookup::instance()->cachedArtistPhoto(name, &known);
+            if (!known && !name.isEmpty()) {
+                AlbumLookup::instance()->requestArtistPhoto(name);
+            }
+        }
     });
 
     d->mShowFileNames = Elisa::ElisaConfiguration::self()->showFileNames();

@@ -86,6 +86,7 @@ QQC.ItemDelegate {
             actions: dataEntry.actions,
             isAlbum: true,
             canHide: dataEntry.entryType === ElisaUtils.Album && dataEntry.databaseId > 0,
+            isArtist: dataEntry.entryType === ElisaUtils.Artist,
             databaseId: dataEntry.databaseId,
             title: dataEntry.mainText,
             artist: dataEntry.secondaryText

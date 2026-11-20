@@ -5,6 +5,7 @@
   */
 
 #include "databaseinterface.h"
+#include "albumlookup.h"
 
 #include "databaseLogging.h"
 
@@ -9567,6 +9568,24 @@ QList<qulonglong> DatabaseInterface::internalAlbumIdsFromAuthor(const QString &A
     return allAlbumIds;
 }
 
+void DatabaseInterface::artistImages(const QString &artist, DataTypes::ArtistDataType &data)
+{
+    // a photo of the artist (Wikimedia Commons) when there is one; otherwise up to four album covers
+    bool known = false;
+    const auto photo = AlbumLookup::instance()->cachedArtistPhoto(artist, &known);
+    if (!photo.isEmpty()) {
+        data[DataTypes::MultipleImageUrlsRole] = QVariantList{};
+        data[DataTypes::ImageUrlRole] = QUrl::fromLocalFile(photo);
+        return;
+    }
+    if (!known) {
+        AlbumLookup::instance()->requestArtistPhoto(artist);
+    }
+    const auto covers = internalGetLatestFourCoversForArtist(artist);
+    data[DataTypes::MultipleImageUrlsRole] = covers;
+    data[DataTypes::ImageUrlRole] = covers.value(0).toUrl();
+}
+
 DataTypes::ListArtistDataType DatabaseInterface::internalAllArtistsPartialData(QSqlQuery &artistsQuery)
 {
     auto result = DataTypes::ListArtistDataType{};
@@ -9585,9 +9604,7 @@ DataTypes::ListArtistDataType DatabaseInterface::internalAllArtistsPartialData(Q
         newData[DataTypes::GenreRole] = QVariant::fromValue(currentRecord.value(2).toString().split(QStringLiteral(", ")));
         newData[DataTypes::TracksCountRole] = currentRecord.value(3);
 
-        const auto covers = internalGetLatestFourCoversForArtist(currentRecord.value(1).toString());
-        newData[DataTypes::MultipleImageUrlsRole] = covers;
-        newData[DataTypes::ImageUrlRole] = covers.value(0).toUrl();
+        artistImages(currentRecord.value(1).toString(), newData);
 
         newData[DataTypes::ElementTypeRole] = ElisaUtils::Artist;
 
@@ -9748,9 +9765,7 @@ DataTypes::ArtistDataType DatabaseInterface::internalOneArtistPartialData(qulong
         result[DataTypes::TitleRole] = currentRecord.value(1);
         result[DataTypes::GenreRole] = QVariant::fromValue(currentRecord.value(2).toString().split(QStringLiteral(", ")));
 
-        const auto covers = internalGetLatestFourCoversForArtist(currentRecord.value(1).toString());
-        result[DataTypes::MultipleImageUrlsRole] = covers;
-        result[DataTypes::ImageUrlRole] = covers.value(0).toUrl();
+        artistImages(currentRecord.value(1).toString(), result);
 
         result[DataTypes::ElementTypeRole] = ElisaUtils::Artist;
     }

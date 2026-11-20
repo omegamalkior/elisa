@@ -332,6 +332,8 @@ private:
 
     DataTypes::ListArtistDataType internalAllArtistsPartialData(QSqlQuery &artistsQuery);
 
+    void artistImages(const QString &artist, DataTypes::ArtistDataType &data);
+
     DataTypes::ListAlbumDataType internalAllAlbumsPartialData(QSqlQuery &query);
 
     DataTypes::ListTrackDataType internalOneAlbumData(qulonglong databaseId);

@@ -228,27 +228,41 @@ void FileScanner::fillInFromFileName(const QString &fileName, DataTypes::TrackDa
         }
     }
 
-    // songs without an album: the album MusicBrainz knows for artist and title
-    if (!trackData.value(DataTypes::AlbumRole).toString().trimmed().isEmpty()) {
-        return;
-    }
     auto artist = trackData.value(DataTypes::AlbumArtistRole).toString().trimmed();
     if (artist.isEmpty()) {
         artist = trackData.value(DataTypes::ArtistRole).toString().trimmed();
     }
     const auto title = trackData.value(DataTypes::TitleRole).toString().trimmed();
-    if (artist.isEmpty() || title.isEmpty() || title == fileName) {
+    const auto file = trackData.value(DataTypes::ResourceRole).toUrl();
+    if (artist.isEmpty()) {
         return;
     }
-    bool known = false;
-    const auto album = AlbumLookup::instance()->cachedAlbum(artist, title, &known);
-    if (!album.isEmpty()) {
-        trackData[DataTypes::AlbumRole] = album;
-        if (trackData.value(DataTypes::AlbumArtistRole).toString().trimmed().isEmpty()) {
-            trackData[DataTypes::AlbumArtistRole] = artist;
+
+    // songs without an album: the album MusicBrainz knows for artist and title
+    auto album = trackData.value(DataTypes::AlbumRole).toString().trimmed();
+    if (album.isEmpty() && !title.isEmpty() && title != fileName) {
+        bool known = false;
+        album = AlbumLookup::instance()->cachedAlbum(artist, title, &known);
+        if (!album.isEmpty()) {
+            trackData[DataTypes::AlbumRole] = album;
+            if (trackData.value(DataTypes::AlbumArtistRole).toString().trimmed().isEmpty()) {
+                trackData[DataTypes::AlbumArtistRole] = artist;
+            }
+        } else if (!known) {
+            AlbumLookup::instance()->requestInBackground(artist, title, file);
         }
-    } else if (!known) {
-        AlbumLookup::instance()->requestInBackground(artist, title, trackData.value(DataTypes::ResourceRole).toUrl());
+    }
+
+    // songs without a cover (none inside the file, none in its folder): the album's
+    // front cover from the Cover Art Archive, kept in Elisa's data folder
+    if (!album.isEmpty() && trackData.value(DataTypes::ImageUrlRole).toUrl().isEmpty()) {
+        bool known = false;
+        const auto cover = AlbumLookup::instance()->cachedCover(artist, album, &known);
+        if (!cover.isEmpty()) {
+            trackData[DataTypes::ImageUrlRole] = QUrl::fromLocalFile(cover);
+        } else if (!known) {
+            AlbumLookup::instance()->requestCover(artist, album, file);
+        }
     }
 }
 

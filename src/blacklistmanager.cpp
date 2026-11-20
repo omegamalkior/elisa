@@ -175,6 +175,53 @@ bool BlacklistManager::deleteTrackFile(const QUrl &file)
     return deleteFiles({file}) == 0;
 }
 
+int BlacklistManager::deleteArtistFiles(const QString &artist)
+{
+    return deleteFiles(artistFiles(artist, {}));
+}
+
+int BlacklistManager::deleteAlbumFilesByName(const QString &album, const QString &artist)
+{
+    if (album.trimmed().isEmpty()) {
+        return 0;
+    }
+    return deleteFiles(artistFiles(artist, album));
+}
+
+// the song files of an artist (as artist or album artist), only of \a album when given
+QList<QUrl> BlacklistManager::artistFiles(const QString &artist, const QString &album) const
+{
+    QList<QUrl> result;
+
+    if (!mDatabase || artist.trimmed().isEmpty()) {
+        return result;
+    }
+
+    DataTypes::ListTrackDataType tracks;
+    const auto readArtist = [this, artist, &tracks] {
+        tracks = mDatabase->tracksDataFromAuthor(artist);
+    };
+
+    // the library lives in its own thread
+    if (mDatabase->thread() == QThread::currentThread()) {
+        readArtist();
+    } else {
+        QMetaObject::invokeMethod(mDatabase, readArtist, Qt::BlockingQueuedConnection);
+    }
+
+    for (const auto &track : std::as_const(tracks)) {
+        if (!album.isEmpty() && track.album().compare(album, Qt::CaseInsensitive) != 0) {
+            continue;
+        }
+        const auto file = track.resourceURI();
+        if (file.isValid() && !result.contains(file)) {
+            result.push_back(file);
+        }
+    }
+
+    return result;
+}
+
 QList<QUrl> BlacklistManager::albumFiles(qulonglong albumId) const
 {
     QList<QUrl> result;
@@ -250,7 +297,8 @@ int BlacklistManager::deleteFiles(const QList<QUrl> &files)
         }
 
         const auto path = file.toLocalFile();
-        if (!QFileInfo::exists(path) || QFile::remove(path)) {
+        // to the trash, so a mistake can be undone; removed for good only where there is no trash
+        if (!QFileInfo::exists(path) || QFile::moveToTrash(path) || QFile::remove(path)) {
             deleted.push_back(file);
         } else {
             ++failures;

@@ -89,6 +89,12 @@ public:
     /// Delete one song file from the computer. @return false if it could not be deleted
     Q_INVOKABLE bool deleteTrackFile(const QUrl &file);
 
+    /// Moves every song file of the artist to the trash; returns how many could not be moved
+    Q_INVOKABLE int deleteArtistFiles(const QString &artist);
+
+    /// Moves every song file of the album (by name and artist) to the trash; returns failures
+    Q_INVOKABLE int deleteAlbumFilesByName(const QString &album, const QString &artist);
+
 Q_SIGNALS:
 
     void countChanged();
@@ -98,6 +104,8 @@ Q_SIGNALS:
 
 private:
     [[nodiscard]] QList<QUrl> albumFiles(qulonglong albumId) const;
+
+    [[nodiscard]] QList<QUrl> artistFiles(const QString &artist, const QString &album) const;
 
     void addEntry(Entry entry);
 
