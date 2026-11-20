@@ -610,21 +610,12 @@ void MediaPlayList::trackChanged(const TrackDataType &track)
 
 void MediaPlayList::trackRemoved(qulonglong trackId)
 {
-    for (int i = 0; i < d->mData.size(); ++i) {
-        auto &oneEntry = d->mData[i];
-
-        if (oneEntry.mIsValid) {
-            if (oneEntry.mId == trackId) {
-                oneEntry.mIsValid = false;
-                oneEntry.mTitle = d->mTrackData[i].title();
-                oneEntry.mArtist = d->mTrackData[i].artist();
-                oneEntry.mAlbum = d->mTrackData[i].album();
-                oneEntry.mTrackNumber = d->mTrackData[i].trackNumber();
-                oneEntry.mDiscNumber = d->mTrackData[i].discNumber();
-
-                Q_EMIT dataChanged(index(i, 0), index(i, 0), {});
-
-            }
+    // a song that left the library (deleted from the computer, hidden, file gone) leaves
+    // the playlist too, instead of staying there as a greyed-out entry
+    for (int i = d->mData.size() - 1; i >= 0; --i) {
+        const auto &oneEntry = d->mData.at(i);
+        if (oneEntry.mIsValid && oneEntry.mId == trackId) {
+            removeRows(i, 1, {});
         }
     }
 }
