@@ -48,10 +48,12 @@ ItemDelegate {
         }
         return ElisaApplication.adjustedTitle(title, trackNumber)
     }
-    // no number in front of the name: songs are listed in album order (by their
-    // disc and track numbers), so the number adds nothing and was often confusing
-    // when only some of an album's songs are in the library
-    readonly property int shownNumber: 0
+    // number shown on album pages, in its own column (not part of the name): the
+    // place in the album as listed (1, 2, 3...), songs being in album order (disc and
+    // track numbers). File names show no number.
+    readonly property int shownNumber: ElisaApplication.showFileNames ? 0 : (position > 0 ? position : trackNumber)
+    // the name itself never carries a number
+    readonly property int nameNumber: 0
 
     readonly property bool imageVisible: delegateLoaded && (detailedView || Kirigami.Settings.isMobile)
 
@@ -205,6 +207,22 @@ ItemDelegate {
                 }
             }
 
+            Label {
+                id: trackNumberLabel
+
+                // album pages (desktop): the number in its own column, left of the name
+                visible: !mediaTrack.detailedView && !Kirigami.Settings.isMobile && mediaTrack.shownNumber > 0
+                Layout.preferredWidth: Theme.trackNumberWidth
+                Layout.alignment: Qt.AlignVCenter
+
+                text: mediaTrack.shownNumber > 0 ? mediaTrack.shownNumber.toLocaleString(Qt.locale(), 'f', 0) : ""
+                textFormat: Text.PlainText
+                horizontalAlignment: Text.AlignRight
+                font.features: { "tnum": 1 }
+                color: mediaTrack.textColor
+                opacity: 0.7
+            }
+
             ColumnLayout {
                 id: labels
 
@@ -227,26 +245,26 @@ ItemDelegate {
                         } else if (Kirigami.Settings.isMobile) {
                             // specific artist/album page (mobile)
                             // not detailed view refers to an album page, in which we should put track numbers
-                            if (mediaTrack.shownNumber !== 0 && mediaTrack.shownNumber !== -1 && mediaTrack.shownNumber !== undefined) {
+                            if (mediaTrack.nameNumber !== 0 && mediaTrack.nameNumber !== -1 && mediaTrack.nameNumber !== undefined) {
                                 return KI18n.i18nc("@item:intable %1: track number. %2: track title.",
                                         "%1 – %2",
-                                        mediaTrack.shownNumber.toLocaleString(Qt.locale(), 'f', 0),
+                                        mediaTrack.nameNumber.toLocaleString(Qt.locale(), 'f', 0),
                                         mediaTrack.displayTitle);
                             } else {
                                 return mediaTrack.displayTitle;
                             }
                         } else {
                             // specific artist/album page (desktop)
-                            if (mediaTrack.shownNumber !== 0 && mediaTrack.shownNumber !== -1 && mediaTrack.shownNumber !== undefined) {
+                            if (mediaTrack.nameNumber !== 0 && mediaTrack.nameNumber !== -1 && mediaTrack.nameNumber !== undefined) {
                                 if (mediaTrack.albumArtist !== undefined && mediaTrack.artist !== mediaTrack.albumArtist) {
                                     return KI18n.i18nc("@item:intable %1: track number. %2: track title. %3: artist name",
                                                 "%1 – %2 – %3",
-                                                mediaTrack.shownNumber.toLocaleString(Qt.locale(), 'f', 0),
+                                                mediaTrack.nameNumber.toLocaleString(Qt.locale(), 'f', 0),
                                                 mediaTrack.displayTitle, mediaTrack.artist);
                                 } else {
                                     return KI18n.i18nc("@item:intable %1: track number. %2: track title.",
                                                 "%1 – %2",
-                                                mediaTrack.shownNumber.toLocaleString(Qt.locale(), 'f', 0),
+                                                mediaTrack.nameNumber.toLocaleString(Qt.locale(), 'f', 0),
                                                 mediaTrack.displayTitle);
                                 }
                             } else {
