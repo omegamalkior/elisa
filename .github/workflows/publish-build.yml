@@ -30,13 +30,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: album-artist-build-18
-          target_commitish: 655aa9f
+          target_commitish: 655aa9f306403642ffa97d279100d60bdb72b36d
           name: Elisa 26.08.3 – Album Artist support, Dark Mode toggle & modern look (build 18)
           body: |
             Elisa 26.08.3 (KDE music player) with:
             - **New:** built-in updater. Elisa looks for a newer build every time it starts and can install it for you (☰ menu → Check for Updates; can be switched off in Settings).
             - **New:** right-click an album or a song to hide it from Elisa or to delete its files from the computer. Hidden music is listed in Settings, where each entry can be switched on/off or removed (which brings it back).
             - **New:** song lists show clean names and 1, 2, 3… numbering instead of odd tag numbers; right-click a song to switch between adjusted names and file names. Albums are ordered by their track numbers even when some songs miss a disc number.
+            - **New:** "Elisa: Import to Music" in the file manager's (Dolphin's) right-click menu: moves music files and folders into the Music folder and unpacks archives there.
+            - **New:** auto-sort: imported music is sorted into Music/Artist/Album folders by its tags (☰ menu → Sort Music into Artist/Album Folders… does it for everything you already have).
             - **New:** the playlist panel opens at a readable width.
             - Album Artist (TPE2) support: an optional Settings checkbox to group the Artists view by album artist. Off by default, so Elisa shows every artist as usual.
             - A Dark Mode toggle in the ☰ menu, and a more modern look.
