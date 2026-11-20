@@ -30,7 +30,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: album-artist-build-18
-          target_commitish: 655aa9f306403642ffa97d279100d60bdb72b36d
+          target_commitish: ${{ github.sha }}
           name: Elisa 26.08.3 – Album Artist support, Dark Mode toggle & modern look (build 18)
           body: |
             Elisa 26.08.3 (KDE music player) with:
