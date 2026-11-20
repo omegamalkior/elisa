@@ -536,22 +536,16 @@ void ElisaApplication::initializeModels()
     }
 #endif
 
-    // "Elisa: Import to Music" leaves a note about what it brought in: sort that into
-    // Artist/Album folders, now and whenever new music arrives while Elisa is open
+    // Sorting into Artist/Album folders only happens for archives dropped on Elisa:
+    // changes inside the music folders never start a sort. Notes left by older builds
+    // of "Elisa: Import to Music" are removed without sorting anything.
     d->mSortImportedMusic = Elisa::ElisaConfiguration::self()->sortImportedMusic();
-    d->mImportTimer.setSingleShot(true);
-    d->mImportTimer.setInterval(1500);
-    connect(&d->mImportTimer, &QTimer::timeout, this, &ElisaApplication::processImportQueues);
-    connect(&d->mImportWatcher, &QFileSystemWatcher::directoryChanged, &d->mImportTimer, qOverload<>(&QTimer::start));
     {
         const auto roots = Elisa::ElisaConfiguration::self()->rootPath();
         for (const auto &root : roots) {
-            if (QFileInfo{root}.isDir()) {
-                d->mImportWatcher.addPath(root);
-            }
+            QFile::remove(QDir::cleanPath(root) + u"/.elisa-import-queue"_s);
         }
     }
-    d->mImportTimer.start();
 
     // look for a newer build shortly after every start
     if (Elisa::ElisaConfiguration::self()->checkForUpdatesAtStartup()) {

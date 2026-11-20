@@ -286,25 +286,25 @@ cat $OUT/import-output.txt
 check "import: files left the source folder" '[ ! -e "$DL/Imported LP.zip" ] && [ ! -e "$DL/Loose Import.mp3" ]'
 sleep 15
 find $HOME/Music | sort > $OUT/music-folder-after-import.txt
-check "import + auto-sort: album from the archive is in Artist/Album" '[ -f "$HOME/Music/Zip Band/Imported LP/01 Zip Song 1.mp3" ] && [ -f "$HOME/Music/Zip Band/Imported LP/02 Zip Song 2.mp3" ]'
-check "import + auto-sort: single song is in Artist/Album" '[ -f "$HOME/Music/Zip Band/Loose Singles/Loose Import.mp3" ]'
-check "import + auto-sort: nothing left behind in the Music folder" '[ ! -e "$HOME/Music/Imported LP" ] && [ ! -e "$HOME/Music/Loose Import.mp3" ] && [ ! -e "$HOME/Music/.elisa-import-queue" ]'
-check "auto-sort left the existing library alone" '[ -f "$HOME/Music/Daft Punk/Random Access Memories/01 Get Lucky.mp3" ] && [ -f "$H/12 The Real You.mp3" ]'
+check "import: the archive is unpacked into the Music folder" '[ -f "$HOME/Music/Imported LP/01 Zip Song 1.mp3" ] && [ -f "$HOME/Music/Imported LP/02 Zip Song 2.mp3" ]'
+check "import: the single song is in the Music folder" '[ -f "$HOME/Music/Loose Import.mp3" ]'
+check "changes in the Music folder do not start a sort (only drops on Elisa do)" '[ ! -e "$HOME/Music/Zip Band" ] && [ ! -e "$HOME/Music/.elisa-import-queue" ]'
+check "the existing library was left alone" '[ -f "$HOME/Music/Daft Punk/Random Access Memories/01 Get Lucky.mp3" ] && [ -f "$H/12 The Real You.mp3" ]'
 click 60 $ARTISTS 3; click 60 $ALBUMS 5; shot albums-after-import-without-restart
 stop_elisa
 
-# import while Elisa is closed: sorted at the next start
+# import while Elisa is closed: not sorted at the next start either
 mkdir -p "$DL/Closed EP"
 ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=800:duration=5" -metadata title="Later" -metadata artist="Night Owl" -metadata album="Closed EP" -metadata track=1 "$DL/Closed EP/01 Later.mp3"
 echo cover > "$DL/Closed EP/cover.jpg"
 ELISA_IMPORT_QUIET=1 $MENUDIR/elisa-import-to-music.sh "$DL/Closed EP" >> $OUT/import-output.txt 2>&1
-check "import of a folder while Elisa is closed" '[ -f "$HOME/Music/Closed EP/01 Later.mp3" ] && [ -f "$HOME/Music/.elisa-import-queue" ]'
+check "import of a folder while Elisa is closed" '[ -f "$HOME/Music/Closed EP/01 Later.mp3" ]'
 
 ########## RUN 4: update check at startup (pretends to be build 1) ##########
 BEFORE=$(flatpak info --user org.kde.elisa 2>/dev/null | grep -i commit | head -n 1)
 start_elisa run4 "ELISA_FORK_BUILD_NUMBER_OVERRIDE=1 ${UPDATE_TOKEN:+ELISA_UPDATE_GITHUB_TOKEN=$UPDATE_TOKEN}"
 shot update-banner-at-startup
-check "folder imported while closed is sorted at startup, cover included" '[ -f "$HOME/Music/Night Owl/Closed EP/01 Later.mp3" ] && [ -f "$HOME/Music/Night Owl/Closed EP/cover.jpg" ] && [ ! -e "$HOME/Music/Closed EP" ]'
+check "folder imported while closed is not sorted at startup" '[ -f "$HOME/Music/Closed EP/01 Later.mp3" ] && [ -f "$HOME/Music/Closed EP/cover.jpg" ] && [ ! -e "$HOME/Music/Night Owl" ]'
 grep "Elisa update check" $OUT/run4.log >> $OUT/checks.txt
 check "update check ran at startup and saw the published build" 'grep -q "Elisa update check: this is build 1 - latest published build is" $OUT/run4.log' WARN
 if [ -z "$APPIMAGE_PATH" ]; then

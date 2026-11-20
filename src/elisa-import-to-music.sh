@@ -15,9 +15,8 @@ mkdir -p "$dest" || exit 1
 moved=0
 failed=0
 problems=""
-# what was brought in, one path per line: Elisa sorts these into Artist/Album folders
-queue="$dest/.elisa-import-queue"
-note() { printf '%s\n' "$1" >> "$queue.$$"; }
+# nothing is noted for sorting: Elisa only sorts music dropped on its window
+note() { :; }
 
 # a path that does not exist yet: "Name", "Name (2)", "Name (3)"...
 unique() {
@@ -115,10 +114,6 @@ $name"
     fi
 done
 
-# hand the list over in one go, when everything is in place
-if [ -f "$queue.$$" ]; then
-    cat "$queue.$$" >> "$queue" && rm -f "$queue.$$"
-fi
 
 if [ "$failed" -gt 0 ]; then
     message="$moved imported into $dest, $failed could not be imported:$problems"

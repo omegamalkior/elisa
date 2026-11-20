@@ -138,7 +138,7 @@ ColumnLayout {
         QQC2.CheckBox {
             Layout.fillWidth: true
 
-            text: KI18n.i18nc("@option:check", "Sort imported music into Artist/Album folders")
+            text: KI18n.i18nc("@option:check", "Sort music dropped on Elisa into Artist/Album folders")
 
             checked: ElisaApplication.sortImportedMusic
             onToggled: ElisaApplication.sortImportedMusic = checked
