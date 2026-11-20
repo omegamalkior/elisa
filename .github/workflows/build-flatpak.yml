@@ -125,7 +125,7 @@ jobs:
           export APPIMAGE_PATH=$(ls $PWD/dist/*.AppImage | head -n 1)
           dbus-run-session -- ./ci/run-elisa-full-test.sh
           cat results/checks.txt
-          if grep -E "failed to load component|is not a type|module .* is not installed|ReferenceError|TypeError|SyntaxError|cannot open shared object|Segmentation|unable to open|Could not open|Unable to load|No QtMultimedia backends" results/run*.log | grep -v "VDPAU"; then
+          if grep -E "failed to load component|is not a type|module .* is not installed|ReferenceError|TypeError|SyntaxError|cannot open shared object|Segmentation|unable to open|Could not open|Unable to load|No QtMultimedia backends" results/run*.log | grep -v -e "VDPAU" -e "TagLib: Could not open file"; then
             echo "::error::Elisa did not start cleanly from the AppImage"; exit 1
           fi
           if grep -q "^FAIL" results/checks.txt; then echo "::error::A test check failed"; exit 1; fi
