@@ -110,6 +110,9 @@ private:
 
     [[nodiscard]] QList<QUrl> artistFiles(const QString &artist, const QString &album) const;
 
+    /// After deleting: album and artist folders left without songs go to the trash too
+    void removeFoldersWithoutSongs(const QList<QUrl> &deleted);
+
     void addEntry(Entry entry);
 
     void removeFromLibrary(const QList<QUrl> &files);

@@ -5,10 +5,13 @@
 #include "blacklistmanager.h"
 
 #include "databaseinterface.h"
+#include "filescanner.h"
+#include "elisa_settings.h"
 
 #include <KLocalizedString>
 
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -285,6 +288,63 @@ void BlacklistManager::removeFromLibrary(const QList<QUrl> &files)
     });
 }
 
+namespace
+{
+// a song file anywhere inside the folder?
+bool hasSongs(const QString &folder)
+{
+    FileScanner scanner;
+    QDirIterator it{folder, QDir::Files | QDir::Hidden | QDir::NoDotAndDotDot, QDirIterator::Subdirectories};
+    while (it.hasNext()) {
+        if (scanner.shouldScanFile(it.next())) {
+            return true;
+        }
+    }
+    return false;
+}
+}
+
+void BlacklistManager::removeFoldersWithoutSongs(const QList<QUrl> &deleted)
+{
+    // the music folders themselves are never removed, nor anything outside them
+    QStringList roots;
+    const auto configured = Elisa::ElisaConfiguration::self()->rootPath();
+    for (const auto &root : configured) {
+        roots.push_back(QDir::cleanPath(QFileInfo{root}.absoluteFilePath()));
+    }
+    const auto rootOf = [&roots](const QString &path) -> QString {
+        for (const auto &root : std::as_const(roots)) {
+            if (path.startsWith(root + u'/')) {
+                return root;
+            }
+        }
+        return {};
+    };
+
+    QStringList folders;
+    for (const auto &file : deleted) {
+        const auto folder = QDir::cleanPath(QFileInfo{file.toLocalFile()}.absolutePath());
+        if (!folders.contains(folder)) {
+            folders.push_back(folder);
+        }
+    }
+    // deepest first, so an album folder goes before its artist folder is looked at
+    std::sort(folders.begin(), folders.end(), [](const QString &a, const QString &b) {
+        return a.count(u'/') > b.count(u'/');
+    });
+
+    for (auto folder : std::as_const(folders)) {
+        // album folder, then artist folder...: each one that holds no song any more goes
+        // to the trash with what is left in it (covers, booklets)
+        while (!rootOf(folder).isEmpty() && QFileInfo{folder}.isDir() && !hasSongs(folder)) {
+            if (!QFile::moveToTrash(folder) && !QDir{folder}.removeRecursively()) {
+                break;
+            }
+            folder = QFileInfo{folder}.absolutePath();
+        }
+    }
+}
+
 int BlacklistManager::deleteFiles(const QList<QUrl> &files)
 {
     QList<QUrl> deleted;
@@ -309,6 +369,7 @@ int BlacklistManager::deleteFiles(const QList<QUrl> &files)
         Q_EMIT filesDeleted(deleted);
     }
     removeFromLibrary(deleted);
+    removeFoldersWithoutSongs(deleted);
 
     return failures;
 }
