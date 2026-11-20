@@ -13,6 +13,10 @@ env:
 
 jobs:
   flatpak:
+    # Flatpak is paused for now: only the AppImage is built, tested and published.
+    # To bring it back, remove the "if: false" lines here and in test-flatpak,
+    # and add the Flatpak back to the publish job.
+    if: false
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.11
@@ -61,6 +65,7 @@ jobs:
   test-flatpak:
     # run the built Flatpak in dark mode on a virtual screen, click through it, take screenshots
     needs: flatpak
+    if: false
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -141,20 +146,16 @@ jobs:
           git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" album-artist-appimage-results
 
   publish:
-    # only the main branch publishes, and only when both tests passed
+    # only the main branch publishes, and only when the AppImage test passed
     if: github.ref_name == 'album-artist-option'
-    needs: [test-flatpak, test-appimage]
+    needs: [test-appimage]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: bundle
-
-      - uses: actions/download-artifact@v4
-        with:
           name: appimage
 
-      - name: Publish both as downloads
+      - name: Publish the AppImage as a download
         uses: softprops/action-gh-release@v2
         with:
           tag_name: album-artist-build-${{ github.run_number }}
@@ -172,9 +173,6 @@ jobs:
             - A Dark Mode toggle in the ☰ menu, and a more modern look.
             - A Recently Added view, a Sleep Timer (☰ menu) and volume shortcuts (Ctrl+Up / Ctrl+Down).
 
-            **Flatpak (Steam Deck / Linux):** download `elisa-album-artist.flatpak` and double-click it (or run `flatpak install elisa-album-artist.flatpak` in Konsole).
-
             **AppImage (any Linux, no install needed):** download `Elisa-album-artist-x86_64.AppImage`, make it executable (right-click → Properties → Permissions → "Is executable") and double-click it.
           files: |
-            elisa-album-artist.flatpak
             Elisa-album-artist-x86_64.AppImage
