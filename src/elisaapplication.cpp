@@ -74,6 +74,7 @@
 #include "tracknamecleaner.h"
 #include "importmenuinstaller.h"
 #include "musicorganizer.h"
+#include "albumlookup.h"
 #include <QFileSystemWatcher>
 #include <QFutureWatcher>
 #include <QtConcurrentRun>
@@ -534,6 +535,23 @@ void ElisaApplication::initializeModels()
         auto *database = d->mMusicManager->viewDatabase();
         QMetaObject::invokeMethod(database, [database, tracks] {
             database->insertTracksList(tracks);
+        });
+    });
+
+    // an album found on MusicBrainz for a song without one: read the song again
+    connect(AlbumLookup::instance(), &AlbumLookup::albumFound, this, [this](const QUrl &file, const QString &album) {
+        Q_UNUSED(album)
+        if (!d->mMusicManager || !file.isLocalFile()) {
+            return;
+        }
+        FileScanner scanner;
+        auto track = scanner.scanOneFile(file);
+        if (!track.isValid()) {
+            return;
+        }
+        auto *database = d->mMusicManager->viewDatabase();
+        QMetaObject::invokeMethod(database, [database, track] {
+            database->insertTracksList({track});
         });
     });
 
@@ -999,6 +1017,9 @@ int sortIntoAlbumFolders(const QString &destination, const QStringList &imported
         tags.artist = track.artist();
         tags.albumArtist = track.albumArtist();
         tags.album = track.album();
+        if (tags.album.trimmed().isEmpty() && tags.isSong) {
+            tags.album = AlbumLookup::instance()->lookup(tags.albumArtist.isEmpty() ? tags.artist : tags.albumArtist, track.title());
+        }
         return tags;
     };
     report(0, i18nc("@info:progress", "Sorting into Artist/Album folders…"), false);
@@ -1359,6 +1380,9 @@ void ElisaApplication::sortInBackground(const QList<std::pair<QString, QStringLi
             tags.artist = track.artist();
             tags.albumArtist = track.albumArtist();
             tags.album = track.album();
+            if (tags.album.trimmed().isEmpty() && tags.isSong) {
+                tags.album = AlbumLookup::instance()->lookup(tags.albumArtist.isEmpty() ? tags.artist : tags.albumArtist, track.title());
+            }
             return tags;
         };
 

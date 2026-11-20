@@ -6,6 +6,7 @@
 
 #include "filescanner.h"
 #include "tracknamecleaner.h"
+#include "albumlookup.h"
 #include "elisa_settings.h"
 
 #include "config-upnp-qt.h"
@@ -211,21 +212,43 @@ DataTypes::TrackDataType FileScanner::scanOneFile(const QUrl &scanFile)
 
 void FileScanner::fillInFromFileName(const QString &fileName, DataTypes::TrackDataType &trackData)
 {
-    // only for songs without an artist tag; only Elisa's library gets the guess,
-    // the file and its name stay as they are
-    if (!trackData.value(DataTypes::ArtistRole).toString().trimmed().isEmpty()
-        || !trackData.value(DataTypes::AlbumArtistRole).toString().trimmed().isEmpty()) {
+    // only Elisa's library gets these guesses: the file and its name stay as they are
+
+    // songs without an artist tag: artist and title from the file name
+    if (trackData.value(DataTypes::ArtistRole).toString().trimmed().isEmpty()
+        && trackData.value(DataTypes::AlbumArtistRole).toString().trimmed().isEmpty()) {
+        const auto guess = TrackNameCleaner::guessFromFileName(fileName, d->knownArtists());
+        if (!guess.artist.isEmpty()) {
+            trackData[DataTypes::ArtistRole] = guess.artist;
+            // no title tag, or the file name standing in for one
+            const auto title = trackData.value(DataTypes::TitleRole).toString().trimmed();
+            if (title.isEmpty() || title == fileName || title == QFileInfo{fileName}.completeBaseName()) {
+                trackData[DataTypes::TitleRole] = guess.title;
+            }
+        }
+    }
+
+    // songs without an album: the album MusicBrainz knows for artist and title
+    if (!trackData.value(DataTypes::AlbumRole).toString().trimmed().isEmpty()) {
         return;
     }
-    const auto guess = TrackNameCleaner::guessFromFileName(fileName, d->knownArtists());
-    if (guess.artist.isEmpty()) {
-        return;
+    auto artist = trackData.value(DataTypes::AlbumArtistRole).toString().trimmed();
+    if (artist.isEmpty()) {
+        artist = trackData.value(DataTypes::ArtistRole).toString().trimmed();
     }
-    trackData[DataTypes::ArtistRole] = guess.artist;
-    // no title tag, or the file name standing in for one
     const auto title = trackData.value(DataTypes::TitleRole).toString().trimmed();
-    if (title.isEmpty() || title == fileName || title == QFileInfo{fileName}.completeBaseName()) {
-        trackData[DataTypes::TitleRole] = guess.title;
+    if (artist.isEmpty() || title.isEmpty() || title == fileName) {
+        return;
+    }
+    bool known = false;
+    const auto album = AlbumLookup::instance()->cachedAlbum(artist, title, &known);
+    if (!album.isEmpty()) {
+        trackData[DataTypes::AlbumRole] = album;
+        if (trackData.value(DataTypes::AlbumArtistRole).toString().trimmed().isEmpty()) {
+            trackData[DataTypes::AlbumArtistRole] = artist;
+        }
+    } else if (!known) {
+        AlbumLookup::instance()->requestInBackground(artist, title, trackData.value(DataTypes::ResourceRole).toUrl());
     }
 }
 

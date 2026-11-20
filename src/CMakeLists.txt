@@ -21,6 +21,7 @@ set(elisaLib_SOURCES
     updatechecker.cpp
     updatereleaseinfo.cpp
     tracknamecleaner.cpp
+    albumlookup.cpp
     importmenuinstaller.cpp
     musicorganizer.cpp
     trackslistener.cpp
