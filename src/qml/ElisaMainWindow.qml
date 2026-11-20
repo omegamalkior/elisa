@@ -682,8 +682,9 @@ Kirigami.ApplicationWindow {
         if (persistentSettings.contentViewState) {
             contentView.restoreState(persistentSettings.contentViewState);
         }
-        if (!(persistentSettings.playListPreferredWidth > 0)) {
-            // never resized by the user: start with a readable playlist width
+        if (!(persistentSettings.playListPreferredWidth >= 16 * Kirigami.Units.gridUnit)) {
+            // never resized by the user, or left at the narrow width older builds saved
+            // (song titles get cut off): start with a readable playlist width
             contentView.applyDefaultPlayListWidth();
         }
 

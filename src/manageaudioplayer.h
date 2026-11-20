@@ -268,6 +268,8 @@ private:
 
     void triggerSkipNextTrack(ElisaUtils::SkipReason reason = ElisaUtils::SkipReason::Automatic);
 
+    void applyPendingRestoredPosition();
+
     void restorePreviousState();
 
     QPersistentModelIndex mCurrentTrack;
@@ -303,6 +305,9 @@ private:
     bool mPlayerIsSeekable = false;
 
     qint64 mPlayerPosition = 0;
+
+    // position restored from the last session, applied once the track has loaded
+    qint64 mPendingRestoredPosition = -1;
 
     QVariantMap mPersistentState;
 

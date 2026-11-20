@@ -135,6 +135,7 @@ void ManageAudioPlayer::setCurrentTrack(const QPersistentModelIndex &currentTrac
     mOldCurrentTrack = mCurrentTrack;
 
     mCurrentTrack = currentTrack;
+    mPendingRestoredPosition = -1;
 
     if (mCurrentTrack.isValid()) {
         restorePreviousState();
@@ -228,6 +229,7 @@ void ManageAudioPlayer::setPlayerStatus(QMediaPlayer::MediaStatus playerStatus)
     case QMediaPlayer::LoadingMedia:
         break;
     case QMediaPlayer::LoadedMedia:
+        applyPendingRestoredPosition();
         if (mPlayingState) {
             triggerPlay();
         }
@@ -237,6 +239,7 @@ void ManageAudioPlayer::setPlayerStatus(QMediaPlayer::MediaStatus playerStatus)
     case QMediaPlayer::StalledMedia:
         break;
     case QMediaPlayer::BufferedMedia:
+        applyPendingRestoredPosition();
         break;
     case QMediaPlayer::EndOfMedia:
         break;
@@ -269,6 +272,7 @@ void ManageAudioPlayer::setPlayerPlaybackState(QMediaPlayer::PlaybackState playe
             }
             break;
         case QMediaPlayer::PlayingState:
+            applyPendingRestoredPosition();
             if (mPlayListModel && mCurrentTrack.isValid()) {
                 mPlayListModel->setData(mCurrentTrack, MediaPlayList::IsPlaying, mIsPlayingRole);
                 Q_EMIT startedPlayingTrack(mCurrentTrack.data(mUrlRole).toUrl(), QDateTime::currentDateTime());
@@ -605,7 +609,13 @@ void ManageAudioPlayer::restorePreviousState()
     auto playerPosition = mPersistentState.find(QStringLiteral("playerPosition"));
     if (playerPosition != mPersistentState.end()) {
         setPlayerPosition(playerPosition->toLongLong());
-        Q_EMIT seek(mPlayerPosition);
+        // The player cannot seek before the track has loaded, so the seek is
+        // done once it has (see setPlayerStatus). Seeking right away was lost:
+        // the time showed where you left off while the song started from 0:00.
+        mPendingRestoredPosition = mPlayerPosition;
+        if (mPlayerStatus == QMediaPlayer::LoadedMedia || mPlayerStatus == QMediaPlayer::BufferedMedia) {
+            applyPendingRestoredPosition();
+        }
     }
     auto playerDuration = mPersistentState.find(QStringLiteral("playerDuration"));
     if (playerDuration != mPersistentState.end()) {
@@ -615,5 +625,18 @@ void ManageAudioPlayer::restorePreviousState()
     mPersistentState.clear();
 }
 
+
+void ManageAudioPlayer::applyPendingRestoredPosition()
+{
+    if (mPendingRestoredPosition <= 0) {
+        mPendingRestoredPosition = -1;
+        return;
+    }
+
+    const auto position = mPendingRestoredPosition;
+    mPendingRestoredPosition = -1;
+    setPlayerPosition(position);
+    Q_EMIT seek(position);
+}
 
 #include "moc_manageaudioplayer.cpp"
