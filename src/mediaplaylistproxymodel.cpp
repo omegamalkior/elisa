@@ -870,7 +870,7 @@ void MediaPlayListProxyModel::enqueue(const DataTypes::EntryDataList &newEntries
 
     if (enqueueMode == ElisaUtils::ReplacePlayList) {
         if (rowCount() != 0) {
-            clearPlayList();
+            clearPlayList(false); // replaced by what is played now: no "Playlist cleared" notice
         }
     }
 
@@ -1066,7 +1066,7 @@ void MediaPlayListProxyModel::switchToTrackUrl(const QUrl &url, ElisaUtils::Play
     }
 }
 
-void MediaPlayListProxyModel::clearPlayList()
+void MediaPlayListProxyModel::clearPlayList(bool showUndo)
 {
     if (rowCount() == 0) {
         return;
@@ -1077,7 +1077,9 @@ void MediaPlayListProxyModel::clearPlayList()
     notifyCurrentTrackChanged();
     d->mPlayListModel->clearPlayList();
     Q_EMIT clearPlayListPlayer();
-    Q_EMIT displayUndoNotification();
+    if (showUndo) {
+        Q_EMIT displayUndoNotification();
+    }
 }
 
 void MediaPlayListProxyModel::undoClearPlayList()
@@ -1164,7 +1166,7 @@ void MediaPlayListProxyModel::loadPlayList(const QUrl &fileName,
     const QByteArray fileContent = inputFile.readAll();
 
     if (enqueueMode == ElisaUtils::ReplacePlayList) {
-        clearPlayList();
+        clearPlayList(false);
     }
 
     d->mLoadedPlayListUrl = fileName;

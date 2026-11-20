@@ -229,7 +229,9 @@ public Q_SLOTS:
 
     void moveRow(int from, int to);
 
-    void clearPlayList();
+    /// \a showUndo: the "Playlist cleared — Undo" notice (the Clear button), not when the
+    /// playlist is replaced by playing something else
+    void clearPlayList(bool showUndo = true);
 
     void undoClearPlayList();
 
