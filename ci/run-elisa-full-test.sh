@@ -9,6 +9,7 @@ if [ -n "$APPIMAGE_PATH" ]; then
 else
   CONF=$HOME/.var/app/org.kde.elisa/config
   flatpak override --user --filesystem=$HOME/Music org.kde.elisa
+  flatpak override --user --filesystem=xdg-download org.kde.elisa   # drop test: archives dropped from Downloads
   flatpak override --user --env=QSG_INFO=1 org.kde.elisa   # log which renderer is used
   flatpak override --user --env=QT_LOGGING_RULES=org.kde.elisa.views.debug=true org.kde.elisa
 fi
@@ -54,7 +55,7 @@ key()   { xdotool key --clearmodifiers "$@"; sleep 3; }
 
 start_elisa() {
   if [ -n "$APPIMAGE_PATH" ]; then
-    env $2 QSG_INFO=1 QT_LOGGING_RULES=org.kde.elisa.views.debug=true "$APPIMAGE_PATH" > $OUT/$1.log 2>&1 &
+    env QSG_INFO=1 QT_LOGGING_RULES=org.kde.elisa.views.debug=true $2 "$APPIMAGE_PATH" > $OUT/$1.log 2>&1 &
   else
     local envs=""; for e in $2; do envs="$envs --env=$e"; done
     flatpak run $envs org.kde.elisa > $OUT/$1.log 2>&1 &
@@ -318,6 +319,57 @@ else
   key Escape
 fi
 stop_elisa
+########## RUN 5: crossfade, settings order, archives dropped on Elisa ##########
+# two 30 s songs; crossfade of 3 s
+CF="$HOME/Music/Crossfade Test/Fade Album"; mkdir -p "$CF"
+for n in 1 2; do ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=$((400+n*200)):duration=30" -metadata title="Fade Song $n" -metadata artist="Crossfade Test" -metadata album="Fade Album" -metadata track=$n "$CF/0$n Fade Song $n.mp3"; done
+write_config true
+sed -i '/^\[PlayerSettings\]/a CrossfadeSeconds=3\nSortImportedMusic=true' $CONF/elisarc
+LOGRULES="QT_LOGGING_RULES=org.kde.elisa.views.debug=true;org.kde.elisa.player.qtMultimedia.debug=true"
+start_elisa run5 "$LOGRULES"
+# play the two songs (Elisa opens files it is given while running)
+if [ -n "$APPIMAGE_PATH" ]; then "$APPIMAGE_PATH" "$CF/01 Fade Song 1.mp3" "$CF/02 Fade Song 2.mp3" >> $OUT/run5-open.log 2>&1 &
+else flatpak run org.kde.elisa "$CF/01 Fade Song 1.mp3" "$CF/02 Fade Song 2.mp3" >> $OUT/run5-open.log 2>&1 & fi
+sleep 5; click 60 $NOWPLAYING 2; shot crossfade-song-1-playing
+sleep 21; shot crossfade-during-fade
+sleep 6;  shot crossfade-song-2-playing
+grep -E "startCrossfade|finishCrossfade" $OUT/run5.log | head -20 > $OUT/crossfade-log.txt
+cat $OUT/crossfade-log.txt
+check "crossfade: the next song starts while the first one fades out" 'grep -q "startCrossfade.*Fade Song 2" $OUT/run5.log'
+check "crossfade: the fade finishes" 'grep -q "finishCrossfade" $OUT/run5.log'
+check "crossfade: the first song is not cut by a restart of song 2" '[ "$(grep -c "setSource.*Fade Song 2" $OUT/run5.log)" -le 1 ]' WARN
+key space
+
+# Settings: the crossfade option comes after the hidden-music list
+key ctrl+shift+comma 4; shot settings-top
+for i in $(seq 1 15); do xdotool mousemove 450 400 click 5; sleep 0.1; done
+sleep 1; shot settings-bottom-crossfade-option
+key Escape
+
+# drag an archive from a file-manager-like window and drop it on Elisa
+DROP=$HOME/Downloads/drop-test; rm -rf $DROP; mkdir -p "$DROP/src/Dropped LP"
+for n in 1 2 3; do ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=$((300+n*90)):duration=20" -metadata title="Drop Song $n" -metadata artist="Drop Band" -metadata album_artist="Drop Band" -metadata album="Dropped LP" -metadata track=$n "$DROP/src/Dropped LP/0$n Drop Song $n.mp3"; done
+(cd $DROP/src && python3 -m zipfile -c "../Dropped LP.zip" "Dropped LP")
+GDK_BACKEND=x11 python3 $PWD/ci/drag-source.py "$DROP/Dropped LP.zip" > $OUT/drag-source.log 2>&1 &
+DRAG_PID=$!
+for i in $(seq 1 20); do SRC=$(xdotool search --name "Drag Source" | head -1); [ -n "$SRC" ] && break; sleep 1; done
+xdotool windowmove $SRC 960 100; sleep 2
+shot drag-source-next-to-elisa
+xdotool mousemove 1080 200 mousedown 1; sleep 0.3
+for x in 1060 1020 960 900 800 700 600 500 460 450; do xdotool mousemove $x $((200 + (1080-x)/4)); sleep 0.15; done
+sleep 1.5; shot drop-overlay-while-dragging
+xdotool mouseup 1
+sleep 1; shot drop-progress-bar
+sleep 3; shot drop-progress-bar-later
+sleep 10; shot drop-done
+find $HOME/Music | sort > $OUT/music-folder-after-drop.txt
+check "drop: the archive is unpacked and sorted into Artist/Album folders" '[ -n "$(find "$HOME/Music/Drop Band" -name "*Drop Song 1*" 2>/dev/null)" ] && [ "$(find "$HOME/Music/Drop Band" -name "*.mp3" 2>/dev/null | wc -l)" = "3" ]'
+check "drop: no unsorted copy or temporary folder is left" '[ ! -e "$HOME/Music/Dropped LP" ] && ! ls -d $HOME/Music/.elisa-import-* >/dev/null 2>&1'
+check "drop: the archive left the Downloads folder" '[ ! -e "$DROP/Dropped LP.zip" ]'
+click 60 $ALBUMS 5; shot albums-after-drop
+kill $DRAG_PID 2>/dev/null
+stop_elisa
+
 find $HOME -name hidden-music.json -exec cp {} $OUT/hidden-music.json \; 2>/dev/null
 
 cat $CONF/elisarc > $OUT/elisarc-after.txt
